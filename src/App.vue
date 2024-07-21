@@ -1,11 +1,10 @@
 <script setup>
 import Layout from '@/Layouts/Layout.vue';
-import Home from '@/views/Home.vue';
-
+import { RouterView } from 'vue-router';
 </script>
 
 <template>
     <Layout>
-        <router-view />
+        <RouterView />
     </Layout>
 </template>

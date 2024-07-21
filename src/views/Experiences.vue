@@ -1,5 +1,4 @@
 <template>
-    <Layout>
         <div class="hero bg-cover bg-center h-screen mb-16">
             <div class="h-screen text-6xl font-extrabold text-blue flex items-center justify-center">
                 <div class="flex justify-center items-center w-[28rem] h-[28rem] rounded-full bg-pink_opaque">
@@ -41,11 +40,9 @@
             image="@/assets/images/experiences/user.png" player="1 Players/Time" time="10 Minutes/Round" price="KES 500"
             description="Fly your own Jet Fighter!" d1="Very interactive shooting games" d2="Immersion at its PEAK"
             d3="Great flying experiecne" />
-    </Layout>
 </template>
 
 <script setup>
-import Layout from '@/Layouts/Layout.vue';
 import ExperienceOdd from '@/Shared/ExperienceOdd.vue';
 import ExperienceEven from '@/Shared/ExperienceEven.vue';
 

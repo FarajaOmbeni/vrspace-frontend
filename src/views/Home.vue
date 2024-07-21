@@ -1,5 +1,4 @@
 <template>
-  <Layout>
     <div class="hero mb-16 bg-cover bg-center">
     <div class="h-screen flex flex-col items-center justify-center">
       <p class="font-header text-6xl font-bold text-blue lg:text-end text-center">VIRTUAL REALITY SPACE</p>
@@ -53,11 +52,9 @@
         description="Level up your events with VR SPACE! Our VR Technology is perfect for team-building becasue it makes everyone bond and have a blast like never before. Work hard, play harder; Let's make it epic!"
         link="/contact" button="ENQUIRE" />
     </div>
-  </Layout>
 </template>
 
 <script setup>
-import Layout from '@/Layouts/Layout.vue';
 import HomeOdd from '@/Shared/HomeOdd.vue';
 import HomeEven from '@/Shared/HomeEven.vue';
 import { RouterLink } from 'vue-router';

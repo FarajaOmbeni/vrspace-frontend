@@ -1,5 +1,4 @@
 <template>
-    <Layout>
         <div>
             <div class="hero bg-cover bg-center h-screen">
                 <div class="h-screen text-6xl font-extrabold text-blue flex items-center justify-center">
@@ -61,10 +60,8 @@
 
         </div>
 
-    </Layout>
 </template>
 <script setup>
-import Layout from '@/Layouts/Layout.vue';
 import { useForm } from '@inertiajs/vue3';
 let form = useForm({
     firstname: '',

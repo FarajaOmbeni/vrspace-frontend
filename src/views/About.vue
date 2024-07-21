@@ -1,5 +1,4 @@
 <template>
-  <Layout>
     <div>
       <div class="hero bg-cover bg-center h-screen">
         <div class="h-screen flex items-center justify-center text-2xl md:text-4xl font-extrabold gap-12">
@@ -54,11 +53,9 @@
         </p>
       </div>
     </div>
-  </Layout>
 </template>
 
 <script setup>
-import Layout from '@/Layouts/Layout.vue';
 </script>
 
 <style scoped>
