@@ -1,10 +1,10 @@
 <template>
     <div class="hero mb-16 bg-cover bg-center">
     <div class="h-screen flex flex-col items-center justify-center">
-      <p class="font-header text-6xl font-bold text-blue lg:text-end text-center">VIRTUAL REALITY SPACE</p>
-      <p class="text-2xl font-bold text-black lg:text-end text-center mb-8">More Than Just Games</p>
+      <p class="font-header text-6xl font-bold text-violet-400 lg:text-end text-center">VIRTUAL REALITY SPACE</p>
+      <p class="text-2xl font-bold text-blue lg:text-end text-center mb-8">More Than Just Games</p>
       <p
-        class="leading-8 text-xl font-bold text-blue rounded-xl bg-home_text shadow-xl mx-4 py-5 px-3 text-center max-w-[45rem]">
+        class="leading-8 text-xl font-bold text-gray-900 rounded-xl bg-home_text shadow-xl mx-4 py-5 px-3 text-center max-w-[45rem]">
         Discover an unparalleled
         virtual reality gaming experience at VR SPACE. Whether you're a seasoned gamer or a first-time
         explorer, our immersive VR experiences promise adventure, excitement, and endless fun. Ready to dive
