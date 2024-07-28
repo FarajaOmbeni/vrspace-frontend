@@ -41,13 +41,13 @@
                 <h2 class="text-3xl font-extrabold text-blue font-bold mb-8">CONTACT US</h2>
                 <form @submit.prevent="sendEmail" class="flex flex-col gap-4">
                     <div class="flex gap-4">
-                        <input type="text" placeholder="First Name" class="p-2 border rounded w-1/2"
+                        <input required type="text" placeholder="First Name" class="p-2 border rounded w-1/2"
                             v-model="form.firstname">
-                        <input type="text" placeholder="Last Name" class="p-2 border rounded w-1/2"
+                        <input required type="text" placeholder="Last Name" class="p-2 border rounded w-1/2"
                             v-model="form.lastname">
                     </div>
-                    <input type="email" placeholder="Email" class="p-2 border rounded w-full" v-model="form.email">
-                    <input type="text" placeholder="Phone Number" class="p-2 border rounded w-full"
+                    <input required type="email" placeholder="Email" class="p-2 border rounded w-full" v-model="form.email">
+                    <input required type="text" placeholder="Phone Number" class="p-2 border rounded w-full"
                         v-model="form.phonenumber">
                     <textarea placeholder="Message" class="p-2 border rounded w-full resize-none overflow-y-auto h-24"
                         v-model="form.message"></textarea>
