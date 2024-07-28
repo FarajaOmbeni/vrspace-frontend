@@ -26,7 +26,7 @@
                 <div class="mb-6">
                     <h3 class="bg-white text-blue text-xl font-bold py-2 px-4 rounded mx-auto">CONTACTS</h3>
                     <p class="text-left text-lg font-bold mt-3 text-gray-900">Phone: +254729054606</p>
-                    <p class="text-left text-lg font-bold text-gray-900">Email: vrspace@jofargroAp.com</p>
+                    <p class="text-left text-lg font-bold text-gray-900">Email: vrspaceke@gmail.com</p>
                 </div>
 
                 <div>
