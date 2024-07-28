@@ -26,7 +26,7 @@
                 <div class="mb-6">
                     <h3 class="bg-white text-blue text-xl font-bold py-2 px-4 rounded mx-auto">CONTACTS</h3>
                     <p class="text-left text-lg font-bold mt-3 text-gray-900">Phone: +254729054606</p>
-                    <p class="text-left text-lg font-bold text-gray-900">Email: vrspaceke@gmail.com</p>
+                    <p class="text-left text-lg font-bold text-gray-900">Email: vrspace@jofargroAp.com</p>
                 </div>
 
                 <div>
@@ -39,7 +39,7 @@
 
             <div class="bg-purple p-10 rounded-lg">
                 <h2 class="text-3xl font-extrabold text-blue font-bold mb-8">CONTACT US</h2>
-                <form @submit.prevent="submit" class="flex flex-col gap-4">
+                <form @submit.prevent="sendEmail" ref="form" class="flex flex-col gap-4">
                     <div class="flex gap-4">
                         <input type="text" placeholder="First Name" class="p-2 border rounded w-1/2"
                             v-model="form.firstname">
@@ -56,13 +56,22 @@
                 </form>
             </div>
         </div>
+    </div>
 
-
+    <!-- Confirmation Popup -->
+    <div v-if="showConfirmation" class="fixed top-24 right-20 bg-green-600 text-white p-4 shadow-lg rounded-lg">
+        Email Sent Successfully!
     </div>
 
 </template>
+
 <script setup>
 import { useForm } from '@inertiajs/vue3';
+import emailjs from '@emailjs/browser';
+import { ref } from 'vue';
+
+const showConfirmation = ref(false);
+
 let form = useForm({
     firstname: '',
     lastname: '',
@@ -71,18 +80,37 @@ let form = useForm({
     message: ''
 });
 
-function submit() {
-    form.post("/createcontact", {
-        preserveScroll: true,
-        onSuccess: () => {
-            form.firstname = '';
-            form.lastname = '';
-            form.email = '';
-            form.phonenumber = '';
-            form.message = '';
-        }
-    });
-}
+const sendEmail = async (e) => {
+    try {
+        // Create an object with the form data
+        const templateParams = {
+            name: `${form.firstname} ${form.lastname}`,
+            email: form.email,
+            phonenumber: form.phonenumber,
+            message: form.message
+        };
+
+        await emailjs.send(
+            'service_tgoznny',
+            'template_vhhrllm',
+            templateParams,
+            'EWt8Y_3IgCEfkKc9F'
+        );
+
+        console.log('Email sent successfully');
+        form.firstname= '',
+        form.lastname= '',
+        form.email= '',
+        form.phonenumber= '',
+        form.message= ''
+        showConfirmation.value = true;
+        setTimeout(() => {
+            showConfirmation.value = false;
+        }, 3000);
+    } catch (error) {
+        console.error('Failed to send email:', error);
+    }
+};
 </script>
 
 <style scoped>
