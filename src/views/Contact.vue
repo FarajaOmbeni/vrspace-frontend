@@ -91,10 +91,10 @@ const sendEmail = async (e) => {
         };
 
         await emailjs.send(
-            'service_tgoznny',
-            'template_vhhrllm',
+            'service_zobyalf',
+            'template_ufaugkb',
             templateParams,
-            'EWt8Y_3IgCEfkKc9F'
+            '3QGzAfI8_ZPib_fRn'
         );
 
         console.log('Email sent successfully');
