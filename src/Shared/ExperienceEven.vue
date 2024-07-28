@@ -8,7 +8,7 @@
       <div class="flex p-3">
 
         <div>
-          <img class="w-[2rem] md:w-[5rem]" :src="image" alt="">
+          <img class="w-[5rem] md:w-[5rem]" :src="image" alt="">
         </div>
         <div class="border-r-blue border-r border-r-4 mx-4"></div>
         <div>

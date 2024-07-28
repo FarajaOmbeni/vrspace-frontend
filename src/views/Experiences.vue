@@ -17,7 +17,7 @@
 
     <ExperienceEven :image_link=eggvr title="Egg Rollercoaster VR" :image=icon player="2 Players/Time"
         time="5 Minutes/Round" price="KES 300"
-        description="Best VR rollercoaster experience, suitable for people of all ages." d1="Adventure games"
+        description="Best VR rollercoaster experience, suitable for people of all ages." d1="Adventure games" d2="Games for leisure"
         d3="Horror games" d4="HEEIIIIGGGHHHTTSS" />
 
     <ExperienceOdd :image_link=gtr title="GT Racing SImulator" :image=icon player="1 Player/Time" time="7 Minutes/Round"
@@ -27,7 +27,7 @@
 
     <ExperienceEven :image_link=racing_kart title="Racing Kart VR - Coming Soon!" :image=icon player="1 Players/Time"
         time="10 Minutes/Round" price="KES 500" description="Race as if you're on the track"
-        d1="Super extra FUN with virtual reality" d3="Immersive racing experience" />
+        d1="Super extra FUN with virtual reality" d2="Experience HIGH speeds" d3="Immersive racing experience" d4="Get in action"/>
 
     <ExperienceOdd :image_link=magic_ufo title="Magic UFO - Coming Soon!" :image=icon player="5 Players/Time"
         time="10 Minutes/Round" price="KES 400" description="Rich and diversified games, suitable for all ages"
@@ -35,7 +35,7 @@
 
     <ExperienceEven :image_link=aircraft title="VR Aircraft - Coming Soon!" :image=icon player="1 Players/Time"
         time="10 Minutes/Round" price="KES 500" description="Fly your own Jet Fighter!"
-        d1="Very interactive shooting games" d2="Immersion at its PEAK" d3="Great flying experiecne" />
+        d1="Very interactive shooting games" d2="Immersion at its PEAK" d3="Great flying experiecne" d4="Fight for GLORY"/>
 </template>
 
 <script setup>
