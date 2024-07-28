@@ -3,7 +3,7 @@
     <div class="w-[25rem] xl:w-[30rem] lg:block my-auto"><img :src="image_link" alt="">
     </div>
     <div
-      class="lg:w-1/2 mx-8 text-justify lg:text-start flex flex-col items-center lg:w-[20rem] lg:justify-center lg:items-start bg-purple rounded-2xl">
+      class="lg:w-1/2 mx-8 text-justify lg:text-start flex flex-col items-center w-[27rem] lg:w-[20rem] lg:justify-center lg:items-start bg-purple rounded-2xl">
       <p class="mb-6 font-header lg:mb-3 text-2xl p-2">{{ title }}</p>
       <div class="flex p-3">
 
