@@ -39,7 +39,7 @@
 
             <div class="bg-purple p-10 rounded-lg">
                 <h2 class="text-3xl font-extrabold text-blue font-bold mb-8">CONTACT US</h2>
-                <form @submit.prevent="sendEmail" ref="form" class="flex flex-col gap-4">
+                <form @submit.prevent="sendEmail" class="flex flex-col gap-4">
                     <div class="flex gap-4">
                         <input type="text" placeholder="First Name" class="p-2 border rounded w-1/2"
                             v-model="form.firstname">
@@ -68,6 +68,9 @@
 <script setup>
 import { useForm } from '@inertiajs/vue3';
 import emailjs from '@emailjs/browser';
+import { ref } from 'vue';
+
+const showConfirmation = ref(false);
 
 let form = useForm({
     firstname: '',
@@ -100,6 +103,10 @@ const sendEmail = async (e) => {
         form.email= '',
         form.phonenumber= '',
         form.message= ''
+        showConfirmation.value = true;
+        setTimeout(() => {
+            showConfirmation.value = false;
+        }, 3000);
     } catch (error) {
         console.error('Failed to send email:', error);
     }
