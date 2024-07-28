@@ -51,8 +51,12 @@
                         v-model="form.phonenumber">
                     <textarea placeholder="Message" class="p-2 border rounded w-full resize-none overflow-y-auto h-24"
                         v-model="form.message"></textarea>
-                    <input type="submit" value="SEND MESSAGE"
-                        class="p-2 bg-white text-blue font-bold rounded hover:bg-slate-200 transition-all delay-50 cursor-pointer">
+                    <button type="submit"
+                        class="p-2 bg-white text-blue font-bold rounded hover:bg-slate-200 transition-all delay-50 cursor-pointer flex justify-center items-center"
+                        :disabled="isLoading">
+                        <span v-if="!isLoading">SEND MESSAGE</span>
+                        <div v-else class="loader"></div>
+                    </button>
                 </form>
             </div>
         </div>
@@ -63,6 +67,10 @@
         Email Sent Successfully!
     </div>
 
+    <!-- Error Popup -->
+    <div v-if="showError" class="fixed top-24 right-20 bg-red-600 text-white p-4 shadow-lg rounded-lg">
+        Failed to send email. Please try again.
+    </div>
 </template>
 
 <script setup>
@@ -71,6 +79,8 @@ import emailjs from '@emailjs/browser';
 import { ref } from 'vue';
 
 const showConfirmation = ref(false);
+const showError = ref(false);
+const isLoading = ref(false);
 
 let form = useForm({
     firstname: '',
@@ -80,9 +90,9 @@ let form = useForm({
     message: ''
 });
 
-const sendEmail = async (e) => {
+const sendEmail = async () => {
+    isLoading.value = true;
     try {
-        // Create an object with the form data
         const templateParams = {
             name: `${form.firstname} ${form.lastname}`,
             email: form.email,
@@ -92,23 +102,25 @@ const sendEmail = async (e) => {
 
         await emailjs.send(
             import.meta.env.VITE_EMAILJS_SERVICE_ID,
-            import.meta.env.VITE_EMAILJS_TEMPLATE_ID, 
+            import.meta.env.VITE_EMAILJS_TEMPLATE_ID,
             templateParams,
             import.meta.env.VITE_EMAILJS_PUBLIC_KEY,
         );
 
         console.log('Email sent successfully');
-        form.firstname= '',
-        form.lastname= '',
-        form.email= '',
-        form.phonenumber= '',
-        form.message= ''
+        form.reset('firstname', 'lastname', 'email', 'phonenumber', 'message');
         showConfirmation.value = true;
         setTimeout(() => {
             showConfirmation.value = false;
         }, 3000);
     } catch (error) {
         console.error('Failed to send email:', error);
+        showError.value = true;
+        setTimeout(() => {
+            showError.value = false;
+        }, 3000);
+    } finally {
+        isLoading.value = false;
     }
 };
 </script>
@@ -116,5 +128,24 @@ const sendEmail = async (e) => {
 <style scoped>
 .hero {
     background-image: url('@/assets/images/contact_us/contact_us.png');
+}
+
+.loader {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #3498db;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 </style>
