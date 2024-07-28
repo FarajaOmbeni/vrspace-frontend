@@ -91,10 +91,10 @@ const sendEmail = async (e) => {
         };
 
         await emailjs.send(
-            'service_zobyalf',
-            'template_ufaugkb',
+            import.meta.env.VITE_EMAILJS_SERVICE_ID,
+            import.meta.env.VITE_EMAILJS_TEMPLATE_ID, 
             templateParams,
-            '3QGzAfI8_ZPib_fRn'
+            import.meta.env.VITE_EMAILJS_PUBLIC_KEY,
         );
 
         console.log('Email sent successfully');
