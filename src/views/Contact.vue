@@ -19,7 +19,7 @@
 
                 <div class="mb-6">
                     <h3 class="bg-white text-blue text-xl font-bold py-2 px-4 rounded mx-auto">LOCATIONS</h3>
-                    <p class="text-left text-gray-900 text-lg font-bold mt-3">The Imaara Mall, Mombasa Road, 2nd Floor
+                    <p class="text-left text-gray-900 text-lg font-bold mt-3">The Waterfront Karen, Basement
                     </p>
                 </div>
 
