@@ -5,7 +5,7 @@
         </div>
 
         <div>
-            <p class="text-slate-300 bg-pink_opaque p-1 text-sm md:text-lg lg:p-2 rounded-lg">UPDATE: We have moved to the Waterfront Karen &#128513;</p>
+            <p class="text-slate-300 bg-pink_opaque p-1 text-xs md:text-lg lg:p-2 rounded-lg">UPDATE: We have moved to the Waterfront Karen &#128513;</p>
         </div>
 
         <div class="relative md:hidden">
