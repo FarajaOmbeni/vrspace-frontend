@@ -12,16 +12,16 @@
     </div>
 
     <ExperienceOdd :image_link=htc title="HTC VIVE VR" :image=icon player="1 Player/Time" time="10 Minutes/Round"
-        price="KES 400" description="Rich and diversified games, suitable for people of all ages." d1="Boxing games"
+        price="KES 500" description="Rich and diversified games, suitable for people of all ages." d1="Boxing games"
         d2="Shooting games" d3="Horror games" d4="Children games" />
 
     <ExperienceEven :image_link=eggvr title="Egg Rollercoaster VR" :image=icon player="2 Players/Time"
-        time="5 Minutes/Round" price="KES 300"
+        time="5 Minutes/Round" price="KES 500"
         description="Best VR rollercoaster experience, suitable for people of all ages." d1="Adventure games" d2="Games for leisure"
         d3="Horror games" d4="HEEIIIIGGGHHHTTSS" />
 
     <ExperienceOdd :image_link=gtr title="GT Racing SImulator" :image=icon player="1 Player/Time" time="7 Minutes/Round"
-        price="KES 250" description="Race with pros using superfast cars" d1="Reach high speeds of 300km/h"
+        price="KES 500" description="Race with pros using superfast cars" d1="Reach high speeds of 300km/h"
         d2="Feel the thrill of speed with ZERO risk" d3="Fit for all levels (beginner to pro)"
         d4="Kids LOVE this one" />
 
@@ -30,7 +30,7 @@
         d1="Super extra FUN with virtual reality" d2="Experience HIGH speeds" d3="Immersive racing experience" d4="Get in action"/>
 
     <ExperienceOdd :image_link=magic_ufo title="Magic UFO - Coming Soon!" :image=icon player="5 Players/Time"
-        time="10 Minutes/Round" price="KES 400" description="Rich and diversified games, suitable for all ages"
+        time="10 Minutes/Round" price="KES 500" description="Rich and diversified games, suitable for all ages"
         d1="360° rotation for total immersion" d2="Horror Games" d3="Adventure Games" d4="Educational Games" />
 
     <ExperienceEven :image_link=aircraft title="VR Aircraft - Coming Soon!" :image=icon player="1 Players/Time"
