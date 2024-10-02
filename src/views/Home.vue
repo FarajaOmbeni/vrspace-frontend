@@ -21,7 +21,7 @@
     <p class="mb-6 text-3xl text-center md:text-4xl text-blue font-header font-bold text-center">
       ANNOUNCEMENTS, <span class="text-3xl md:text-4xl font-header text-pink">TOURNAMENT ALERT!</span></p>
     <img class="w-[20rem] mb-4" src="@/assets/images/announcements/fc25_nov.jpg" alt="Tournament Flyer">
-    <a href="https://forms.gle/Gu7mZaRhdbs2tgHbA" class="hover:underline text-blue text-2xl font-bold">REGISTER NOW!</a>
+    <a href="https://forms.gle/Gu7mZaRhdbs2tgHbA" class="hover:underline text-blue text-2xl font-bold" target="_blank">REGISTER NOW!</a>
   </div>
 
   <HomeOdd imagine="IMAGINE, " explore="EXPLORE, " experience="EXPERIENCE." :image_link=imagine
