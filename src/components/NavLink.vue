@@ -1,9 +1,14 @@
 <script setup>
 import { RouterLink } from 'vue-router';
+
+// Component name definition
+defineOptions({
+  name: 'NavLinkComponent'
+});
+
 defineProps({
     to: String,
-
-})
+});
 </script>
 
 <template>

@@ -32,6 +32,11 @@
 </template>
 
 <script setup>
+// Component name definition
+defineOptions({
+  name: 'ExperienceEvenSection'
+});
+
 defineProps({
   image_link: String,
   title: String,
