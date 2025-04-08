@@ -30,6 +30,11 @@
 </template>
 
 <script setup>
+// Component name definition
+defineOptions({
+  name: 'ExperienceOddSection'
+});
+
 defineProps({
   image_link: String,
   title: String,
