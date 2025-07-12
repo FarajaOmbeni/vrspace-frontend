@@ -11,13 +11,11 @@
         </RouterLink>
 
         <!-- Mobile Menu Button -->
-        <button 
-          @click="toggleMenu" 
-          class="md:hidden flex items-center text-white focus:outline-none" 
-          aria-label="Toggle navigation menu"
-        >
+        <button @click="toggleMenu" class="md:hidden flex items-center text-white focus:outline-none"
+          aria-label="Toggle navigation menu">
           <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path v-if="isMenuOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            <path v-if="isMenuOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M6 18L18 6M6 6l12 12" />
             <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
@@ -27,8 +25,10 @@
           <NavLink to="/" :class="{ 'active': route.path === '/' }">Home</NavLink>
           <NavLink to="/about" :class="{ 'active': route.path === '/about' }">About Us</NavLink>
           <NavLink to="/experiences" :class="{ 'active': route.path === '/experiences' }">VR Experiences</NavLink>
+          <NavLink to="/marketplace" :class="{ 'active': route.path === '/marketplace' }">Marketplace</NavLink>
           <NavLink to="/contact" :class="{ 'active': route.path === '/contact' }">Contact</NavLink>
-          <RouterLink to="/contact" class="ml-2 bg-pink text-white py-2 px-4 rounded-full font-bold transition-all duration-300 hover:opacity-90 hover:shadow-md">
+          <RouterLink to="/contact"
+            class="ml-2 bg-pink text-white py-2 px-4 rounded-full font-bold transition-all duration-300 hover:opacity-90 hover:shadow-md">
             Book Now
           </RouterLink>
         </div>
@@ -36,16 +36,18 @@
     </div>
 
     <!-- Mobile Navigation Menu -->
-    <div 
-      v-show="isMenuOpen" 
-      class="md:hidden bg-blue text-white py-4 px-4 shadow-lg transform transition-all duration-300"
-    >
+    <div v-show="isMenuOpen"
+      class="md:hidden bg-blue text-white py-4 px-4 shadow-lg transform transition-all duration-300">
       <div class="flex flex-col space-y-4">
         <NavLink to="/" :class="{ 'active': route.path === '/' }" @click="closeMenu">Home</NavLink>
         <NavLink to="/about" :class="{ 'active': route.path === '/about' }" @click="closeMenu">About Us</NavLink>
-        <NavLink to="/experiences" :class="{ 'active': route.path === '/experiences' }" @click="closeMenu">VR Experiences</NavLink>
+        <NavLink to="/experiences" :class="{ 'active': route.path === '/experiences' }" @click="closeMenu">VR
+          Experiences</NavLink>
+        <NavLink to="/marketplace" :class="{ 'active': route.path === '/marketplace' }" @click="closeMenu">Marketplace
+        </NavLink>
         <NavLink to="/contact" :class="{ 'active': route.path === '/contact' }" @click="closeMenu">Contact</NavLink>
-        <RouterLink to="/contact" @click="closeMenu" class="text-center bg-pink text-white py-2 px-4 rounded-full font-bold transition-all duration-300 hover:opacity-90 hover:shadow-md">
+        <RouterLink to="/contact" @click="closeMenu"
+          class="text-center bg-pink text-white py-2 px-4 rounded-full font-bold transition-all duration-300 hover:opacity-90 hover:shadow-md">
           Book Now
         </RouterLink>
       </div>

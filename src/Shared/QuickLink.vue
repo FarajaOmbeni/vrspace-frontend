@@ -1,5 +1,5 @@
 <template>
-    <RouterLink class="hover:text-pink">
+    <RouterLink :to="to" class="hover:text-pink text-white">
         <slot></slot>
     </RouterLink>
 </template>
