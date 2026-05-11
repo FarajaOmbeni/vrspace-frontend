@@ -213,9 +213,8 @@
 </template>
 
 <script setup>
-import { useForm } from '@inertiajs/vue3';
 import emailjs from '@emailjs/browser';
-import { ref } from 'vue';
+import { ref, reactive } from 'vue';
 
 // Component name definition
 defineOptions({
@@ -226,7 +225,7 @@ const showConfirmation = ref(false);
 const showError = ref(false);
 const isLoading = ref(false);
 
-let form = useForm({
+const form = reactive({
     firstname: '',
     lastname: '',
     email: '',
@@ -252,7 +251,7 @@ const sendEmail = async () => {
         );
 
         console.log('Email sent successfully');
-        form.reset('firstname', 'lastname', 'email', 'phonenumber', 'message');
+        Object.assign(form, { firstname: '', lastname: '', email: '', phonenumber: '', message: '' });
         showConfirmation.value = true;
         setTimeout(() => {
             showConfirmation.value = false;
