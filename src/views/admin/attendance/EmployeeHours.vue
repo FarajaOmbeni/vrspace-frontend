@@ -2,12 +2,14 @@
 import { ref, computed, onMounted } from 'vue'
 import { getEmployeeHours } from '@/services/attendanceService'
 import { listEmployees } from '@/services/employeeService'
+import { getSetting } from '@/services/settingsService'
 import { toast } from 'vue-sonner'
 
 defineOptions({ name: 'EmployeeHours' })
 
 const records = ref([])
 const employees = ref([])
+const hourlyRate = ref(400)
 const loading = ref(true)
 
 const filterEmployee = ref('')
@@ -58,7 +60,9 @@ const summary = computed(() => {
     map[id].overtimeHours += Number(rec.overtime_hours || 0)
   }
 
-  return Object.values(map).sort((a, b) => b.totalHours - a.totalHours)
+  return Object.values(map)
+    .map((e) => ({ ...e, pay: Math.round(e.totalHours * hourlyRate.value) }))
+    .sort((a, b) => b.totalHours - a.totalHours)
 })
 
 function formatHours(hours) {
@@ -71,16 +75,20 @@ async function loadData() {
   loading.value = true
   try {
     const { startDate, endDate } = getDateRange()
-    const [empData, hoursData] = await Promise.all([
+    const [empData, hoursData, workingHours] = await Promise.all([
       listEmployees(),
       getEmployeeHours({
         employeeId: filterEmployee.value || undefined,
         startDate,
         endDate,
       }),
+      getSetting('working_hours').catch(() => null),
     ])
     employees.value = empData
     records.value = hoursData
+    if (workingHours?.hourly_rate) {
+      hourlyRate.value = workingHours.hourly_rate
+    }
   } catch (e) {
     toast.error('Failed to load hours')
   } finally {
@@ -175,14 +183,17 @@ onMounted(loadData)
         :key="emp.name"
         class="bg-white rounded-xl shadow-soft p-4"
       >
-        <p class="font-medium text-gray-900 mb-2">{{ emp.name }}</p>
+        <div class="flex items-center justify-between mb-2">
+          <p class="font-medium text-gray-900">{{ emp.name }}</p>
+          <p class="text-lg font-bold text-green-600">{{ emp.pay.toLocaleString('en-KE') }} KES</p>
+        </div>
         <div class="grid grid-cols-3 gap-2 text-center">
           <div>
             <p class="text-xs text-gray-400">Days</p>
             <p class="text-lg font-bold text-gray-900">{{ emp.days }}</p>
           </div>
           <div>
-            <p class="text-xs text-gray-400">Total</p>
+            <p class="text-xs text-gray-400">Hours</p>
             <p class="text-lg font-bold text-purple">{{ formatHours(emp.totalHours) }}</p>
           </div>
           <div>
@@ -204,6 +215,7 @@ onMounted(loadData)
             <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">Days Worked</th>
             <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">Total Hours</th>
             <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">Overtime</th>
+            <th class="text-right text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">Pay (KES)</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-100">
@@ -216,6 +228,7 @@ onMounted(loadData)
                 {{ formatHours(emp.overtimeHours) }}
               </span>
             </td>
+            <td class="px-6 py-4 text-right text-sm font-bold text-green-600">{{ emp.pay.toLocaleString('en-KE') }}</td>
           </tr>
         </tbody>
         <!-- Totals row -->
@@ -225,6 +238,7 @@ onMounted(loadData)
             <td class="px-6 py-3 text-sm font-bold text-gray-900">{{ summary.reduce((a, e) => a + e.days, 0) }}</td>
             <td class="px-6 py-3 text-sm font-bold text-purple">{{ formatHours(summary.reduce((a, e) => a + e.totalHours, 0)) }}</td>
             <td class="px-6 py-3 text-sm font-bold text-orange-600">{{ formatHours(summary.reduce((a, e) => a + e.overtimeHours, 0)) }}</td>
+            <td class="px-6 py-3 text-right text-sm font-bold text-green-600">{{ summary.reduce((a, e) => a + e.pay, 0).toLocaleString('en-KE') }}</td>
           </tr>
         </tfoot>
       </table>

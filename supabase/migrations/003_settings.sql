@@ -7,7 +7,8 @@ CREATE TABLE settings (
 
 -- Seed default shop location (The Waterfront Karen, Nairobi)
 INSERT INTO settings (key, value) VALUES
-  ('shop_location', '{"lat": -1.3194, "lng": 36.7880, "radius_meters": 100, "name": "VRSpace - The Waterfront Karen"}');
+  ('shop_location', '{"lat": -1.3194, "lng": 36.7880, "radius_meters": 100, "name": "VRSpace - The Waterfront Karen"}'),
+  ('working_hours', '{"opening_hour": 11, "closing_hour": 22, "hourly_rate": 400}');
 
 -- RLS
 ALTER TABLE settings ENABLE ROW LEVEL SECURITY;

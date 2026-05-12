@@ -2,8 +2,8 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 import { useGeolocation } from '@/composables/useGeolocation'
-import { getTodayRecord, clockIn, clockOut } from '@/services/attendanceService'
-import { getShopLocation } from '@/services/settingsService'
+import { getTodayRecord, clockIn, clockOut, getEmployeeHours } from '@/services/attendanceService'
+import { getShopLocation, getSetting } from '@/services/settingsService'
 import { toast } from 'vue-sonner'
 
 defineOptions({ name: 'ClockInOut' })
@@ -18,10 +18,14 @@ const acting = ref(false)
 const elapsed = ref('')
 const locationBlocked = ref(false)
 const locationDistance = ref(null)
+const monthlyHours = ref(0)
+const monthlyOvertime = ref(0)
+const hourlyRate = ref(400)
 let timer = null
 
 const isClockedIn = computed(() => record.value && !record.value.clock_out)
 const isClockedOut = computed(() => record.value && record.value.clock_out)
+const monthlyPay = computed(() => Math.round(monthlyHours.value * hourlyRate.value))
 
 function formatTime(dateStr) {
   return new Date(dateStr).toLocaleTimeString('en-KE', {
@@ -94,12 +98,30 @@ async function checkLocation() {
 async function loadRecord() {
   loading.value = true
   try {
-    const [rec, loc] = await Promise.all([
+    const now = new Date()
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
+    const today = now.toISOString().split('T')[0]
+
+    const [rec, loc, monthlyData, workingHours] = await Promise.all([
       getTodayRecord(user.value.id),
       getShopLocation().catch(() => null),
+      getEmployeeHours({
+        employeeId: user.value.id,
+        startDate: monthStart,
+        endDate: today,
+      }).catch(() => []),
+      getSetting('working_hours').catch(() => null),
     ])
     record.value = rec
     shopLocation.value = loc
+
+    if (workingHours?.hourly_rate) {
+      hourlyRate.value = workingHours.hourly_rate
+    }
+
+    monthlyHours.value = monthlyData.reduce((a, r) => a + Number(r.total_hours || 0), 0)
+    monthlyOvertime.value = monthlyData.reduce((a, r) => a + Number(r.overtime_hours || 0), 0)
+
     if (isClockedIn.value) {
       startTimer()
     }
@@ -304,6 +326,27 @@ onUnmounted(stopTimer)
                 {{ formatHours(record?.overtime_hours) }}
               </span>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Monthly summary -->
+      <div class="w-full max-w-2xl mx-auto mt-6 bg-white rounded-2xl shadow-soft p-6">
+        <h2 class="text-lg font-header font-bold text-gray-900 mb-4">This Month</h2>
+        <div class="grid grid-cols-3 gap-4 text-center">
+          <div>
+            <p class="text-xs text-gray-400">Hours</p>
+            <p class="text-xl font-bold text-purple">{{ formatHours(monthlyHours) }}</p>
+          </div>
+          <div>
+            <p class="text-xs text-gray-400">Overtime</p>
+            <p :class="['text-xl font-bold', monthlyOvertime > 0 ? 'text-orange-600' : 'text-gray-400']">
+              {{ formatHours(monthlyOvertime) }}
+            </p>
+          </div>
+          <div>
+            <p class="text-xs text-gray-400">Pay</p>
+            <p class="text-xl font-bold text-green-600">{{ monthlyPay.toLocaleString('en-KE') }} KES</p>
           </div>
         </div>
       </div>

@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { getShopLocation, updateShopLocation } from '@/services/settingsService'
+import { getShopLocation, updateShopLocation, getSetting, updateSetting } from '@/services/settingsService'
 import { toast } from 'vue-sonner'
 
 defineOptions({ name: 'AdminSettings' })
@@ -11,16 +11,30 @@ const form = ref({
   lng: 0,
   radius_meters: 100,
 })
+const hoursForm = ref({
+  opening_hour: 11,
+  closing_hour: 22,
+  hourly_rate: 400,
+})
 const loading = ref(true)
 const saving = ref(false)
+const savingHours = ref(false)
+
+function formatHour(h) {
+  const period = h >= 12 ? 'PM' : 'AM'
+  const display = h > 12 ? h - 12 : h === 0 ? 12 : h
+  return `${display}:00 ${period}`
+}
 
 async function loadSettings() {
   loading.value = true
   try {
-    const loc = await getShopLocation()
-    if (loc) {
-      form.value = { ...loc }
-    }
+    const [loc, hours] = await Promise.all([
+      getShopLocation().catch(() => null),
+      getSetting('working_hours').catch(() => null),
+    ])
+    if (loc) form.value = { ...loc }
+    if (hours) hoursForm.value = { ...hours }
   } catch (e) {
     toast.error('Failed to load settings')
   } finally {
@@ -37,6 +51,18 @@ async function handleSave() {
     toast.error(e.message || 'Failed to save settings')
   } finally {
     saving.value = false
+  }
+}
+
+async function handleSaveHours() {
+  savingHours.value = true
+  try {
+    await updateSetting('working_hours', hoursForm.value)
+    toast.success('Working hours updated')
+  } catch (e) {
+    toast.error(e.message || 'Failed to save working hours')
+  } finally {
+    savingHours.value = false
   }
 }
 
@@ -166,6 +192,67 @@ onMounted(loadSettings)
       >
         <span v-if="saving">Saving...</span>
         <span v-else>Save Settings</span>
+      </button>
+    </form>
+
+    <!-- Working Hours -->
+    <form v-if="!loading" @submit.prevent="handleSaveHours" class="space-y-6 mt-6">
+      <div class="bg-white rounded-xl shadow-soft p-6">
+        <h2 class="text-lg font-header font-bold text-gray-900 mb-1">Working Hours</h2>
+        <p class="text-sm text-gray-500 mb-4">Hours worked after the closing time count as overtime.</p>
+
+        <div class="grid grid-cols-2 gap-3 mb-4">
+          <div>
+            <label for="opening" class="block text-sm font-medium text-gray-700 mb-1">Opening Hour</label>
+            <select
+              id="opening"
+              v-model.number="hoursForm.opening_hour"
+              class="w-full rounded-xl border-gray-300 px-4 py-3 text-base focus:border-purple-500 focus:ring-purple-500"
+            >
+              <option v-for="h in 24" :key="h-1" :value="h-1">{{ formatHour(h-1) }}</option>
+            </select>
+          </div>
+          <div>
+            <label for="closing" class="block text-sm font-medium text-gray-700 mb-1">Closing Hour</label>
+            <select
+              id="closing"
+              v-model.number="hoursForm.closing_hour"
+              class="w-full rounded-xl border-gray-300 px-4 py-3 text-base focus:border-purple-500 focus:ring-purple-500"
+            >
+              <option v-for="h in 24" :key="h-1" :value="h-1">{{ formatHour(h-1) }}</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Hourly Rate -->
+        <div class="mb-4">
+          <label for="hourlyRate" class="block text-sm font-medium text-gray-700 mb-1">Hourly Rate (KES)</label>
+          <input
+            id="hourlyRate"
+            v-model.number="hoursForm.hourly_rate"
+            type="number"
+            min="0"
+            step="50"
+            required
+            class="w-full rounded-xl border-gray-300 px-4 py-3 text-base focus:border-purple-500 focus:ring-purple-500"
+          />
+          <p class="text-xs text-gray-400 mt-1">Used to calculate employee pay</p>
+        </div>
+
+        <p class="text-xs text-gray-400">
+          Current: {{ formatHour(hoursForm.opening_hour) }} — {{ formatHour(hoursForm.closing_hour) }}.
+          Overtime starts after {{ formatHour(hoursForm.closing_hour) }}.
+          Pay: {{ hoursForm.hourly_rate }} KES/hr.
+        </p>
+      </div>
+
+      <button
+        type="submit"
+        :disabled="savingHours"
+        class="w-full bg-purple text-white font-semibold py-3 rounded-xl text-base hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        <span v-if="savingHours">Saving...</span>
+        <span v-else>Save Working Hours</span>
       </button>
     </form>
   </div>
