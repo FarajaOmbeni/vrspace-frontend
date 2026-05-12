@@ -4,6 +4,7 @@ import { useRoute, RouterView } from 'vue-router'
 import Layout from '@/Layouts/Layout.vue'
 import emailjs from '@emailjs/browser'
 import { Toaster } from 'vue-sonner'
+import '../node_modules/vue-sonner/lib/index.css'
 
 emailjs.init(import.meta.env.VITE_EMAILJS_PUBLIC_KEY)
 

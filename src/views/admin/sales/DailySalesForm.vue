@@ -12,9 +12,6 @@ const { user, isAdmin } = useAuth()
 // Default to today
 const selectedDate = ref(new Date().toISOString().split('T')[0])
 
-// Partner report date (the date the partner's report covers)
-const reportDate = ref('')
-
 const dailySales = ref(null)
 const sessions = ref([])
 const loading = ref(true)
@@ -55,7 +52,6 @@ async function loadData() {
       partnerRevenue.value = ''
     }
     notes.value = salesData?.notes || ''
-    reportDate.value = selectedDate.value
   } catch (e) {
     toast.error('Failed to load sales data')
   } finally {
@@ -64,10 +60,6 @@ async function loadData() {
 }
 
 async function handleSubmit() {
-  if (!reportDate.value) {
-    toast.error('Select the report date')
-    return
-  }
   if (partnerRevenue.value === '' || partnerRevenue.value === null) {
     toast.error('Enter the partner reported revenue')
     return
@@ -76,7 +68,7 @@ async function handleSubmit() {
   saving.value = true
   try {
     await updatePartnerRevenue(
-      reportDate.value,
+      selectedDate.value,
       Number(partnerRevenue.value),
       user.value.id,
       notes.value
@@ -145,19 +137,6 @@ onMounted(loadData)
         <!-- Partner revenue input (admin only) -->
         <form v-if="isAdmin" @submit.prevent="handleSubmit" class="bg-white rounded-xl shadow-soft p-6">
           <h2 class="text-lg font-header font-bold text-gray-900 mb-4">Partner Report</h2>
-
-          <div class="mb-4">
-            <label for="reportDate" class="block text-sm font-medium text-gray-700 mb-1">
-              Report Date
-            </label>
-            <input
-              id="reportDate"
-              v-model="reportDate"
-              type="date"
-              required
-              class="w-full rounded-xl border-gray-300 px-4 py-3 text-base focus:border-purple-500 focus:ring-purple-500"
-            />
-          </div>
 
           <div class="mb-4">
             <label for="partnerRevenue" class="block text-sm font-medium text-gray-700 mb-1">

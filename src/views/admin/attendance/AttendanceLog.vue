@@ -39,6 +39,16 @@ async function handleManualClockIn() {
   }
 }
 
+async function handleManualClockOut(record) {
+  try {
+    await clockOut(record.id)
+    toast.success(`${record.profiles?.full_name || 'Employee'} clocked out`)
+    loadData()
+  } catch (e) {
+    toast.error(e.message || 'Failed to clock out employee')
+  }
+}
+
 function formatDate(dateStr) {
   return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-KE', {
     weekday: 'short',
@@ -226,6 +236,13 @@ onMounted(loadData)
             </p>
           </div>
         </div>
+        <button
+          v-if="!rec.clock_out"
+          @click="handleManualClockOut(rec)"
+          class="mt-3 w-full bg-red-50 text-red-600 text-sm font-medium py-2 rounded-lg hover:bg-red-100 transition-colors"
+        >
+          Clock Out
+        </button>
       </div>
     </div>
 
@@ -240,6 +257,7 @@ onMounted(loadData)
             <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">Clock Out</th>
             <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">Hours</th>
             <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">Overtime</th>
+            <th class="text-right text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">Actions</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-100">
@@ -253,6 +271,15 @@ onMounted(loadData)
               <span :class="['text-sm font-medium', rec.overtime_hours > 0 ? 'text-orange-600' : 'text-gray-500']">
                 {{ formatHours(rec.overtime_hours) }}
               </span>
+            </td>
+            <td class="px-6 py-4 text-right">
+              <button
+                v-if="!rec.clock_out"
+                @click="handleManualClockOut(rec)"
+                class="text-sm font-medium text-red-500 hover:text-red-700 transition-colors"
+              >
+                Clock Out
+              </button>
             </td>
           </tr>
         </tbody>
