@@ -132,6 +132,12 @@ const router = createRouter({
           component: () => import('@/views/admin/employees/EmployeeForm.vue'),
           meta: { requiresAdmin: true }
         },
+        {
+          path: 'settings',
+          name: 'AdminSettings',
+          component: () => import('@/views/admin/Settings.vue'),
+          meta: { requiresAdmin: true }
+        },
       ]
     },
   ],

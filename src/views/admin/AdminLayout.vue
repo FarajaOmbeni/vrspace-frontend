@@ -27,6 +27,7 @@ const adminMenuItems = computed(() => [
   { label: 'Discrepancies', to: '/admin/sales/discrepancies' },
   { label: 'Machines', to: '/admin/machines' },
   { label: 'Employees', to: '/admin/employees' },
+  { label: 'Settings', to: '/admin/settings' },
 ])
 
 function isActive(path, exact = false) {

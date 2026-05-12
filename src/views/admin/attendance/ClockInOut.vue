@@ -1,10 +1,312 @@
 <script setup>
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useAuth } from '@/composables/useAuth'
+import { useGeolocation } from '@/composables/useGeolocation'
+import { getTodayRecord, clockIn, clockOut } from '@/services/attendanceService'
+import { getShopLocation } from '@/services/settingsService'
+import { toast } from 'vue-sonner'
+
 defineOptions({ name: 'ClockInOut' })
+
+const { user, isAdmin } = useAuth()
+const { position, error: geoError, loading: geoLoading, getPosition, isWithinRadius } = useGeolocation()
+
+const record = ref(null)
+const shopLocation = ref(null)
+const loading = ref(true)
+const acting = ref(false)
+const elapsed = ref('')
+const locationBlocked = ref(false)
+const locationDistance = ref(null)
+let timer = null
+
+const isClockedIn = computed(() => record.value && !record.value.clock_out)
+const isClockedOut = computed(() => record.value && record.value.clock_out)
+
+function formatTime(dateStr) {
+  return new Date(dateStr).toLocaleTimeString('en-KE', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
+function formatHours(hours) {
+  if (!hours) return '—'
+  const h = Math.floor(hours)
+  const m = Math.round((hours - h) * 60)
+  return `${h}h ${m}m`
+}
+
+function updateElapsed() {
+  if (!record.value?.clock_in || record.value.clock_out) {
+    elapsed.value = ''
+    return
+  }
+
+  const start = new Date(record.value.clock_in).getTime()
+  const now = Date.now()
+  const diff = Math.floor((now - start) / 1000)
+
+  const h = Math.floor(diff / 3600)
+  const m = Math.floor((diff % 3600) / 60)
+  const s = diff % 60
+
+  elapsed.value = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`
+}
+
+function startTimer() {
+  stopTimer()
+  updateElapsed()
+  timer = setInterval(updateElapsed, 1000)
+}
+
+function stopTimer() {
+  if (timer) {
+    clearInterval(timer)
+    timer = null
+  }
+}
+
+async function checkLocation() {
+  if (!shopLocation.value) return true
+
+  try {
+    await getPosition()
+    const result = isWithinRadius(
+      shopLocation.value.lat,
+      shopLocation.value.lng,
+      shopLocation.value.radius_meters
+    )
+    locationDistance.value = result.distance
+    if (!result.within) {
+      locationBlocked.value = true
+      return false
+    }
+    locationBlocked.value = false
+    return true
+  } catch (e) {
+    // Geolocation failed — show the error
+    locationBlocked.value = true
+    return false
+  }
+}
+
+async function loadRecord() {
+  loading.value = true
+  try {
+    const [rec, loc] = await Promise.all([
+      getTodayRecord(user.value.id),
+      getShopLocation().catch(() => null),
+    ])
+    record.value = rec
+    shopLocation.value = loc
+    if (isClockedIn.value) {
+      startTimer()
+    }
+  } catch (e) {
+    toast.error('Failed to load attendance')
+  } finally {
+    loading.value = false
+  }
+}
+
+async function handleClockIn() {
+  locationBlocked.value = false
+  acting.value = true
+
+  try {
+    const allowed = await checkLocation()
+    if (!allowed) {
+      acting.value = false
+      return
+    }
+
+    record.value = await clockIn(user.value.id)
+    startTimer()
+    toast.success('Clocked in!')
+  } catch (e) {
+    toast.error(e.message || 'Failed to clock in')
+  } finally {
+    acting.value = false
+  }
+}
+
+async function handleClockOut() {
+  locationBlocked.value = false
+  acting.value = true
+
+  try {
+    const allowed = await checkLocation()
+    if (!allowed) {
+      acting.value = false
+      return
+    }
+
+    record.value = await clockOut(record.value.id)
+    stopTimer()
+    toast.success('Clocked out!')
+  } catch (e) {
+    toast.error(e.message || 'Failed to clock out')
+  } finally {
+    acting.value = false
+  }
+}
+
+async function retryLocation() {
+  locationBlocked.value = false
+  geoError.value = null
+
+  if (!record.value) {
+    await handleClockIn()
+  } else if (isClockedIn.value) {
+    await handleClockOut()
+  }
+}
+
+onMounted(loadRecord)
+onUnmounted(stopTimer)
 </script>
 
 <template>
-  <div>
-    <h1 class="text-2xl font-header font-bold text-gray-900">Clock In / Out</h1>
-    <p class="text-gray-500 mt-1">Coming soon</p>
+  <div class="flex flex-col items-center justify-center min-h-[60vh] md:min-h-0">
+    <!-- Loading -->
+    <div v-if="loading" class="flex justify-center py-12">
+      <div class="w-10 h-10 border-4 border-purple/30 border-t-purple rounded-full animate-spin" />
+    </div>
+
+    <template v-else>
+      <!-- Desktop: card layout -->
+      <div class="w-full max-w-2xl mx-auto md:grid md:grid-cols-2 md:gap-6">
+
+        <!-- Clock button area -->
+        <div class="flex flex-col items-center justify-center md:bg-white md:rounded-2xl md:shadow-soft md:p-8">
+          <!-- Date -->
+          <p class="text-sm text-gray-500 mb-2">
+            {{ new Date().toLocaleDateString('en-KE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) }}
+          </p>
+
+          <!-- Elapsed timer -->
+          <div v-if="isClockedIn" class="mb-6">
+            <p class="text-5xl font-mono font-bold text-gray-900 tabular-nums">{{ elapsed }}</p>
+            <p class="text-sm text-gray-400 text-center mt-1">Time elapsed</p>
+          </div>
+
+          <!-- Not clocked in yet -->
+          <div v-else-if="!record" class="mb-6 text-center">
+            <p class="text-4xl font-bold text-gray-300">00:00:00</p>
+            <p class="text-sm text-gray-400 mt-1">Ready to start your shift</p>
+          </div>
+
+          <!-- Already clocked out -->
+          <div v-else-if="isClockedOut" class="mb-6 text-center">
+            <p class="text-4xl font-bold text-green-600">Done</p>
+            <p class="text-sm text-gray-400 mt-1">Shift completed for today</p>
+          </div>
+
+          <!-- Location blocked message -->
+          <div v-if="locationBlocked" class="mb-4 w-full max-w-xs">
+            <div class="bg-red-50 rounded-xl p-4 text-center">
+              <svg class="w-8 h-8 text-red-400 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+
+              <p v-if="geoError" class="text-sm text-red-600 font-medium mb-1">Location access required</p>
+              <p v-else class="text-sm text-red-600 font-medium mb-1">You're too far from the shop</p>
+
+              <p v-if="geoError" class="text-xs text-red-500 mb-3">{{ geoError }}</p>
+              <p v-else class="text-xs text-red-500 mb-3">
+                You are {{ locationDistance }}m away. You need to be within {{ shopLocation?.radius_meters }}m.
+              </p>
+
+              <button
+                @click="retryLocation"
+                class="bg-red-500 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-red-600 transition-colors"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+
+          <!-- Checking location indicator -->
+          <div v-if="acting && geoLoading" class="mb-4">
+            <p class="text-sm text-gray-400">Checking your location...</p>
+          </div>
+
+          <!-- Clock In button -->
+          <button
+            v-if="!record"
+            @click="handleClockIn"
+            :disabled="acting"
+            class="w-40 h-40 md:w-36 md:h-36 rounded-full bg-green-500 text-white text-xl font-bold shadow-strong hover:bg-green-600 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <span v-if="acting">...</span>
+            <span v-else>Clock In</span>
+          </button>
+
+          <!-- Clock Out button -->
+          <button
+            v-else-if="isClockedIn"
+            @click="handleClockOut"
+            :disabled="acting"
+            class="w-40 h-40 md:w-36 md:h-36 rounded-full bg-red-500 text-white text-xl font-bold shadow-strong hover:bg-red-600 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <span v-if="acting">...</span>
+            <span v-else>Clock Out</span>
+          </button>
+        </div>
+
+        <!-- Today's summary (desktop shows alongside, mobile shows below) -->
+        <div class="mt-8 md:mt-0 w-full md:bg-white md:rounded-2xl md:shadow-soft md:p-8">
+          <h2 class="text-lg font-header font-bold text-gray-900 mb-4">Today's Summary</h2>
+
+          <div class="space-y-3">
+            <div class="flex justify-between items-center py-2 border-b border-gray-100">
+              <span class="text-sm text-gray-500">Status</span>
+              <span
+                :class="[
+                  'px-2.5 py-0.5 rounded-full text-xs font-medium',
+                  isClockedIn ? 'bg-green-50 text-green-600' :
+                  isClockedOut ? 'bg-gray-100 text-gray-600' :
+                  'bg-yellow-50 text-yellow-600'
+                ]"
+              >
+                {{ isClockedIn ? 'Clocked In' : isClockedOut ? 'Clocked Out' : 'Not Started' }}
+              </span>
+            </div>
+
+            <div class="flex justify-between items-center py-2 border-b border-gray-100">
+              <span class="text-sm text-gray-500">Clock In</span>
+              <span class="text-sm font-medium text-gray-900">
+                {{ record?.clock_in ? formatTime(record.clock_in) : '—' }}
+              </span>
+            </div>
+
+            <div class="flex justify-between items-center py-2 border-b border-gray-100">
+              <span class="text-sm text-gray-500">Clock Out</span>
+              <span class="text-sm font-medium text-gray-900">
+                {{ record?.clock_out ? formatTime(record.clock_out) : '—' }}
+              </span>
+            </div>
+
+            <div class="flex justify-between items-center py-2 border-b border-gray-100">
+              <span class="text-sm text-gray-500">Total Hours</span>
+              <span class="text-sm font-medium text-gray-900">
+                {{ formatHours(record?.total_hours) }}
+              </span>
+            </div>
+
+            <div class="flex justify-between items-center py-2">
+              <span class="text-sm text-gray-500">Overtime</span>
+              <span
+                :class="[
+                  'text-sm font-medium',
+                  record?.overtime_hours > 0 ? 'text-orange-600' : 'text-gray-900'
+                ]"
+              >
+                {{ formatHours(record?.overtime_hours) }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
   </div>
 </template>
