@@ -12,10 +12,10 @@ const signingOut = ref(false)
 
 const navItems = computed(() => {
   const items = [
+    { label: 'Dashboard', icon: 'dashboard', to: '/admin/dashboard', exact: true, show: isAdmin.value },
     { label: 'Clock', icon: 'clock', to: '/admin/clock', exact: true, show: true },
     { label: 'Sessions', icon: 'play', to: '/admin/sessions', exact: false, show: true },
     { label: 'Sales', icon: 'dollar', to: '/admin/sales', exact: true, show: true },
-    { label: 'Dashboard', icon: 'dashboard', to: '/admin/dashboard', exact: true, show: isAdmin.value },
   ]
   return items.filter((i) => i.show)
 })
