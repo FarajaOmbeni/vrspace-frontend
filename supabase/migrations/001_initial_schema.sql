@@ -35,7 +35,6 @@ CREATE TABLE attendance (
 CREATE TABLE machines (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL UNIQUE,
-  slug TEXT NOT NULL UNIQUE,
   price_per_session NUMERIC(10,2) NOT NULL DEFAULT 500.00,
   is_active BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -317,10 +316,10 @@ CREATE POLICY "Admins can insert daily_sales"
 -- 5. SEED DATA — Machines
 -- ============================================
 
-INSERT INTO machines (name, slug, price_per_session) VALUES
-  ('Playstation 5', 'playstation_5', 500.00),
-  ('Nintendo', 'nintendo', 500.00),
-  ('GT Racing', 'gt_racing', 500.00),
-  ('EggVR', 'egg_vr', 500.00),
-  ('HTC Vive', 'htc_vive', 500.00),
-  ('Meta Quest', 'meta_quest', 500.00);
+INSERT INTO machines (name, price_per_session) VALUES
+  ('Playstation 5', 500.00),
+  ('Nintendo', 500.00),
+  ('GT Racing', 500.00),
+  ('EggVR', 500.00),
+  ('HTC Vive', 500.00),
+  ('Meta Quest', 500.00);

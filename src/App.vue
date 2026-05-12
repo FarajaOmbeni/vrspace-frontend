@@ -8,7 +8,11 @@ import { Toaster } from 'vue-sonner'
 emailjs.init(import.meta.env.VITE_EMAILJS_PUBLIC_KEY)
 
 const route = useRoute()
-const isAdminRoute = computed(() => route.meta.isAdmin || route.path.startsWith('/admin'))
+const isAdminRoute = computed(() =>
+  route.meta.isAdmin ||
+  route.path.startsWith('/admin') ||
+  window.location.pathname.startsWith('/admin')
+)
 </script>
 
 <template>

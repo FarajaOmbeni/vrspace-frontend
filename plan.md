@@ -71,8 +71,8 @@ All machines charge a flat **500 KES per session** regardless of duration. Multi
 |---|---|---|
 | id | UUID PK | |
 | name | TEXT UNIQUE | Display name (e.g., 'Playstation 5') |
-| slug | TEXT UNIQUE | URL-safe key (e.g., 'playstation_5') |
 | price_per_session | NUMERIC(10,2) | Default 500.00 |
+| image_url | TEXT | Public URL from Supabase Storage |
 | is_active | BOOLEAN | Default true |
 | created_at | TIMESTAMPTZ | |
 

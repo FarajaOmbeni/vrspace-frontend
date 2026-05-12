@@ -8,6 +8,7 @@ const router = useRouter()
 const { profile, isAdmin, signOut } = useAuth()
 
 const showMoreMenu = ref(false)
+const signingOut = ref(false)
 
 const navItems = computed(() => {
   const items = [
@@ -34,6 +35,7 @@ function isActive(path, exact = false) {
 }
 
 async function handleSignOut() {
+  signingOut.value = true
   try {
     await signOut()
   } catch (e) {
@@ -45,6 +47,15 @@ async function handleSignOut() {
 
 <template>
   <div class="min-h-screen bg-gray-50 font-body">
+    <!-- Signing out overlay -->
+    <div
+      v-if="signingOut"
+      class="fixed inset-0 z-[100] bg-blue-950/90 flex flex-col items-center justify-center"
+    >
+      <div class="w-10 h-10 border-4 border-white/30 border-t-white rounded-full animate-spin mb-4" />
+      <p class="text-white text-lg font-medium">Signing out...</p>
+    </div>
+
     <!-- Desktop: Sidebar -->
     <aside
       class="hidden md:flex md:flex-col md:fixed md:inset-y-0 md:w-64 bg-blue-950 text-white"
