@@ -25,6 +25,8 @@ const adminMenuItems = computed(() => [
   { label: 'Employee Hours', to: '/admin/attendance/hours' },
   { label: 'Sales Reports', to: '/admin/sales/reports' },
   { label: 'Discrepancies', to: '/admin/sales/discrepancies' },
+  { label: 'Finance', to: '/admin/finance' },
+  { label: 'Expense Templates', to: '/admin/finance/templates' },
   { label: 'Machines', to: '/admin/machines' },
   { label: 'Employees', to: '/admin/employees' },
   { label: 'Settings', to: '/admin/settings' },

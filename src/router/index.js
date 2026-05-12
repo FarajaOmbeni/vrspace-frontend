@@ -138,6 +138,42 @@ const router = createRouter({
           component: () => import('@/views/admin/Settings.vue'),
           meta: { requiresAdmin: true }
         },
+        {
+          path: 'finance',
+          name: 'AdminFinance',
+          component: () => import('@/views/admin/finance/MonthlyOverview.vue'),
+          meta: { requiresAdmin: true }
+        },
+        {
+          path: 'finance/templates',
+          name: 'AdminExpenseTemplates',
+          component: () => import('@/views/admin/finance/ExpenseTemplates.vue'),
+          meta: { requiresAdmin: true }
+        },
+        {
+          path: 'finance/expense/new',
+          name: 'AdminExpenseNew',
+          component: () => import('@/views/admin/finance/ExpenseForm.vue'),
+          meta: { requiresAdmin: true }
+        },
+        {
+          path: 'finance/expense/:id/edit',
+          name: 'AdminExpenseEdit',
+          component: () => import('@/views/admin/finance/ExpenseForm.vue'),
+          meta: { requiresAdmin: true }
+        },
+        {
+          path: 'finance/income/new',
+          name: 'AdminIncomeNew',
+          component: () => import('@/views/admin/finance/AdditionalIncomeForm.vue'),
+          meta: { requiresAdmin: true }
+        },
+        {
+          path: 'finance/income/:id/edit',
+          name: 'AdminIncomeEdit',
+          component: () => import('@/views/admin/finance/AdditionalIncomeForm.vue'),
+          meta: { requiresAdmin: true }
+        },
       ]
     },
   ],
