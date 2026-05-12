@@ -21,13 +21,9 @@ export async function getTodaySessions(employeeId) {
 
   let query = supabase
     .from('sessions')
-    .select('*, machines:machine_id(name, image_url)')
+    .select('*, machines:machine_id(name, image_url), profiles:employee_id(full_name)')
     .eq('date', today)
     .order('created_at', { ascending: false })
-
-  if (employeeId) {
-    query = query.eq('employee_id', employeeId)
-  }
 
   const { data, error } = await query
   if (error) throw error

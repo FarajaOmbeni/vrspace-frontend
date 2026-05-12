@@ -188,6 +188,7 @@ onMounted(loadData)
                 <div class="min-w-0">
                   <p class="text-sm font-medium text-gray-900 truncate">{{ s.machines?.name }}</p>
                   <p class="text-xs text-gray-400">{{ s.session_count }} x {{ formatPrice(s.price_per_session) }} = {{ formatPrice(s.total_amount) }} KES</p>
+                  <p class="text-xs text-gray-300">by {{ s.profiles?.full_name }}</p>
                 </div>
               </div>
               <div class="flex items-center gap-2 flex-shrink-0">
@@ -210,6 +211,7 @@ onMounted(loadData)
                   <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-2">Machine</th>
                   <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-2">Count</th>
                   <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-2">Amount</th>
+                  <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-2">Logged By</th>
                   <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-2">Time</th>
                   <th class="text-right text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-2"></th>
                 </tr>
@@ -219,6 +221,7 @@ onMounted(loadData)
                   <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ s.machines?.name }}</td>
                   <td class="px-4 py-3 text-sm text-gray-900">{{ s.session_count }}</td>
                   <td class="px-4 py-3 text-sm font-semibold text-purple">{{ formatPrice(s.total_amount) }} KES</td>
+                  <td class="px-4 py-3 text-sm text-gray-500">{{ s.profiles?.full_name }}</td>
                   <td class="px-4 py-3 text-sm text-gray-400">{{ formatTime(s.created_at) }}</td>
                   <td class="px-4 py-3 text-right">
                     <button @click="handleDelete(s)" class="text-red-400 hover:text-red-600">
