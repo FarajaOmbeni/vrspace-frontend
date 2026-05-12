@@ -15,6 +15,7 @@ const hoursForm = ref({
   opening_hour: 11,
   closing_hour: 22,
   hourly_rate: 400,
+  timezone: 'Africa/Nairobi',
 })
 const loading = ref(true)
 const saving = ref(false)
@@ -239,10 +240,28 @@ onMounted(loadSettings)
           <p class="text-xs text-gray-400 mt-1">Used to calculate employee pay</p>
         </div>
 
+        <!-- Timezone -->
+        <div class="mb-4">
+          <label for="timezone" class="block text-sm font-medium text-gray-700 mb-1">Timezone</label>
+          <select
+            id="timezone"
+            v-model="hoursForm.timezone"
+            class="w-full rounded-xl border-gray-300 px-4 py-3 text-base focus:border-purple-500 focus:ring-purple-500"
+          >
+            <option value="Africa/Nairobi">Africa/Nairobi (EAT, UTC+3)</option>
+            <option value="Africa/Dar_es_Salaam">Africa/Dar es Salaam (EAT, UTC+3)</option>
+            <option value="Africa/Kampala">Africa/Kampala (EAT, UTC+3)</option>
+            <option value="Africa/Lagos">Africa/Lagos (WAT, UTC+1)</option>
+            <option value="Africa/Johannesburg">Africa/Johannesburg (SAST, UTC+2)</option>
+            <option value="UTC">UTC</option>
+          </select>
+          <p class="text-xs text-gray-400 mt-1">Used for overtime calculation (closing hour is in this timezone)</p>
+        </div>
+
         <p class="text-xs text-gray-400">
           Current: {{ formatHour(hoursForm.opening_hour) }} — {{ formatHour(hoursForm.closing_hour) }}.
           Overtime starts after {{ formatHour(hoursForm.closing_hour) }}.
-          Pay: {{ hoursForm.hourly_rate }} KES/hr.
+          Pay: {{ hoursForm.hourly_rate }} KES/hr. Timezone: {{ hoursForm.timezone }}.
         </p>
       </div>
 

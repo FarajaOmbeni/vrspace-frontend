@@ -2,12 +2,21 @@
 import { ref, onMounted } from 'vue'
 import { listAttendance, clockIn, clockOut } from '@/services/attendanceService'
 import { listEmployees } from '@/services/employeeService'
+import { getSetting } from '@/services/settingsService'
 import { toast } from 'vue-sonner'
 
 defineOptions({ name: 'AttendanceLog' })
 
 const records = ref([])
 const employees = ref([])
+const openingHour = ref(11)
+
+function isLate(clockInStr) {
+  if (!clockInStr) return false
+  const d = new Date(clockInStr)
+  return d.getHours() > openingHour.value ||
+    (d.getHours() === openingHour.value && d.getMinutes() > 0)
+}
 const loading = ref(true)
 
 const filterEmployee = ref('')
@@ -75,16 +84,20 @@ function formatHours(hours) {
 async function loadData() {
   loading.value = true
   try {
-    const [empData, attData] = await Promise.all([
+    const [empData, attData, workingHours] = await Promise.all([
       listEmployees(),
       listAttendance({
         employeeId: filterEmployee.value || undefined,
         startDate: filterStartDate.value || undefined,
         endDate: filterEndDate.value || undefined,
       }),
+      getSetting('working_hours').catch(() => null),
     ])
     employees.value = empData
     records.value = attData
+    if (workingHours?.opening_hour != null) {
+      openingHour.value = workingHours.opening_hour
+    }
   } catch (e) {
     toast.error('Failed to load attendance')
   } finally {
@@ -205,8 +218,9 @@ onMounted(loadData)
       <p class="text-gray-400 text-lg">No attendance records found</p>
     </div>
 
+    <template v-else>
     <!-- Mobile: Cards -->
-    <div v-else class="md:hidden space-y-3">
+    <div class="md:hidden space-y-3">
       <div
         v-for="rec in records"
         :key="rec.id"
@@ -219,7 +233,10 @@ onMounted(loadData)
         <div class="grid grid-cols-2 gap-2 text-sm">
           <div>
             <p class="text-xs text-gray-400">Clock In</p>
-            <p class="font-medium text-gray-900">{{ formatTime(rec.clock_in) }}</p>
+            <div class="flex items-center gap-1">
+              <p :class="['font-medium', isLate(rec.clock_in) ? 'text-red-500' : 'text-gray-900']">{{ formatTime(rec.clock_in) }}</p>
+              <span v-if="isLate(rec.clock_in)" class="px-1 py-0.5 rounded text-[10px] font-medium bg-red-50 text-red-500">Late</span>
+            </div>
           </div>
           <div>
             <p class="text-xs text-gray-400">Clock Out</p>
@@ -247,7 +264,7 @@ onMounted(loadData)
     </div>
 
     <!-- Desktop: Table -->
-    <div v-else class="hidden md:block bg-white rounded-xl shadow-soft overflow-hidden">
+    <div class="hidden md:block bg-white rounded-xl shadow-soft overflow-hidden">
       <table class="w-full">
         <thead class="bg-gray-50 border-b border-gray-200">
           <tr>
@@ -264,7 +281,10 @@ onMounted(loadData)
           <tr v-for="rec in records" :key="rec.id" class="hover:bg-gray-50 transition-colors">
             <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ rec.profiles?.full_name }}</td>
             <td class="px-6 py-4 text-sm text-gray-500">{{ formatDate(rec.date) }}</td>
-            <td class="px-6 py-4 text-sm text-gray-900">{{ formatTime(rec.clock_in) }}</td>
+            <td class="px-6 py-4 text-sm">
+              <span :class="isLate(rec.clock_in) ? 'text-red-500' : 'text-gray-900'">{{ formatTime(rec.clock_in) }}</span>
+              <span v-if="isLate(rec.clock_in)" class="ml-1 px-1.5 py-0.5 rounded text-xs font-medium bg-red-50 text-red-500">Late</span>
+            </td>
             <td class="px-6 py-4 text-sm text-gray-900">{{ formatTime(rec.clock_out) }}</td>
             <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ formatHours(rec.total_hours) }}</td>
             <td class="px-6 py-4">
@@ -285,5 +305,6 @@ onMounted(loadData)
         </tbody>
       </table>
     </div>
+    </template>
   </div>
 </template>

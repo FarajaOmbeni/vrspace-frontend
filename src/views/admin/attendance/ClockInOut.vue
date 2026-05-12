@@ -21,12 +21,20 @@ const locationDistance = ref(null)
 const monthlyHours = ref(0)
 const monthlyOvertime = ref(0)
 const hourlyRate = ref(400)
+const openingHour = ref(11)
 const previousMonths = ref([])
 let timer = null
 
 const isClockedIn = computed(() => record.value && !record.value.clock_out)
 const isClockedOut = computed(() => record.value && record.value.clock_out)
 const salary = computed(() => Number(profile.value?.salary || 0))
+
+const isLate = computed(() => {
+  if (!record.value?.clock_in) return false
+  const clockIn = new Date(record.value.clock_in)
+  return clockIn.getHours() > openingHour.value ||
+    (clockIn.getHours() === openingHour.value && clockIn.getMinutes() > 0)
+})
 const overtimePay = computed(() => Math.round(monthlyOvertime.value * hourlyRate.value))
 const totalPay = computed(() => salary.value + overtimePay.value)
 
@@ -120,6 +128,9 @@ async function loadRecord() {
 
     if (workingHours?.hourly_rate) {
       hourlyRate.value = workingHours.hourly_rate
+    }
+    if (workingHours?.opening_hour != null) {
+      openingHour.value = workingHours.opening_hour
     }
 
     monthlyHours.value = monthlyData.reduce((a, r) => a + Number(r.total_hours || 0), 0)
@@ -323,9 +334,12 @@ onUnmounted(stopTimer)
 
             <div class="flex justify-between items-center py-2 border-b border-gray-100">
               <span class="text-sm text-gray-500">Clock In</span>
-              <span class="text-sm font-medium text-gray-900">
-                {{ record?.clock_in ? formatTime(record.clock_in) : '—' }}
-              </span>
+              <div class="flex items-center gap-2">
+                <span :class="['text-sm font-medium', isLate ? 'text-red-500' : 'text-gray-900']">
+                  {{ record?.clock_in ? formatTime(record.clock_in) : '—' }}
+                </span>
+                <span v-if="isLate" class="px-1.5 py-0.5 rounded text-xs font-medium bg-red-50 text-red-500">Late</span>
+              </div>
             </div>
 
             <div class="flex justify-between items-center py-2 border-b border-gray-100">

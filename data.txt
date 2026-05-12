@@ -23,6 +23,8 @@ DECLARE
   total_h NUMERIC(5,2);
   overtime_h NUMERIC(5,2);
 BEGIN
+  -- Set timezone so all timestamps are in Nairobi time
+  SET LOCAL timezone = 'Africa/Nairobi';
 
   -- Generate 30 days of data (Apr 12 - May 11, 2026)
   FOR i IN 0..29 LOOP

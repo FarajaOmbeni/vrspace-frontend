@@ -1,10 +1,10 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { listAttendance } from '@/services/attendanceService'
+import { listAttendance, getEmployeeHours } from '@/services/attendanceService'
 import { getTodayTotals } from '@/services/sessionService'
-import { getDiscrepancies } from '@/services/salesService'
-import { getEmployeeHours } from '@/services/attendanceService'
+import { getDiscrepancies, listDailySales } from '@/services/salesService'
+import { listMonthlyExpenses, getMonthlyVRRevenue, listAdditionalIncome } from '@/services/financeService'
 import { toast } from 'vue-sonner'
 
 defineOptions({ name: 'AdminDashboard' })
@@ -17,6 +17,10 @@ const todaySessions = ref(0)
 const todayRevenue = ref(0)
 const recentDiscrepancies = ref([])
 const overtimeAlerts = ref([])
+const monthProfitLoss = ref(0)
+const monthTotalIncome = ref(0)
+const monthTotalExpenses = ref(0)
+const pendingPartnerReports = ref(0)
 
 function formatPrice(amount) {
   return Number(amount).toLocaleString('en-KE')
@@ -46,19 +50,21 @@ function formatHours(hours) {
 async function loadData() {
   loading.value = true
   try {
-    const today = new Date().toISOString().split('T')[0]
-    const weekAgo = new Date()
-    weekAgo.setDate(weekAgo.getDate() - 7)
-    const weekStart = weekAgo.toISOString().split('T')[0]
+    const now = new Date()
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+    const weekAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7)
+    const weekStart = `${weekAgo.getFullYear()}-${String(weekAgo.getMonth() + 1).padStart(2, '0')}-${String(weekAgo.getDate()).padStart(2, '0')}`
+    const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
 
-    const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-      .toISOString().split('T')[0]
-
-    const [attendance, totals, discrepancies, monthlyHours] = await Promise.all([
+    const [attendance, totals, discrepancies, monthlyHours, expenses, vrRevenue, additionalIncome, dailySales] = await Promise.all([
       listAttendance({ startDate: today, endDate: today }),
       getTodayTotals(),
       getDiscrepancies({ startDate: weekStart, endDate: today }).catch(() => []),
       getEmployeeHours({ startDate: monthStart, endDate: today }).catch(() => []),
+      listMonthlyExpenses(monthStart).catch(() => []),
+      getMonthlyVRRevenue(monthStart).catch(() => 0),
+      listAdditionalIncome(monthStart).catch(() => []),
+      listDailySales({ startDate: monthStart, endDate: today }).catch(() => []),
     ])
 
     // Currently clocked in
@@ -86,6 +92,19 @@ async function loadData() {
       }
     }
     overtimeAlerts.value = Object.values(overtimeMap).sort((a, b) => b.overtimeHours - a.overtimeHours)
+
+    // Finance: profit/loss
+    const totalExp = expenses.reduce((a, e) => a + Number(e.amount || 0), 0)
+    const totalAddIncome = additionalIncome.reduce((a, i) => a + Number(i.amount || 0), 0)
+    const totalInc = vrRevenue + totalAddIncome
+    monthTotalIncome.value = totalInc
+    monthTotalExpenses.value = totalExp
+    monthProfitLoss.value = totalInc - totalExp
+
+    // Pending partner reports: days with sessions but no partner_reported_revenue
+    const daysWithSales = new Set(dailySales.map((s) => s.date))
+    const daysWithPartner = new Set(dailySales.filter((s) => s.partner_reported_revenue != null).map((s) => s.date))
+    pendingPartnerReports.value = daysWithSales.size - daysWithPartner.size
   } catch (e) {
     toast.error('Failed to load dashboard')
   } finally {
@@ -169,6 +188,45 @@ onMounted(loadData)
             {{ recentDiscrepancies.length }}
           </p>
           <p class="text-xs text-gray-400 mt-0.5">last 7 days</p>
+        </button>
+      </div>
+
+      <!-- Finance cards -->
+      <div class="grid grid-cols-2 gap-4 mb-6">
+        <!-- Profit/Loss -->
+        <button
+          @click="router.push('/admin/finance')"
+          class="bg-white rounded-xl shadow-soft p-4 text-left hover:shadow-medium transition-shadow"
+        >
+          <div class="flex items-center gap-2 mb-2">
+            <div :class="['w-8 h-8 rounded-lg flex items-center justify-center', monthProfitLoss >= 0 ? 'bg-green-50' : 'bg-red-50']">
+              <svg v-if="monthProfitLoss >= 0" class="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+              <svg v-else class="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+            </div>
+            <span class="text-xs text-gray-400">This Month</span>
+          </div>
+          <p :class="['text-2xl font-bold', monthProfitLoss >= 0 ? 'text-green-600' : 'text-red-500']">
+            {{ monthProfitLoss >= 0 ? '' : '-' }}{{ formatPrice(Math.abs(monthProfitLoss)) }}
+          </p>
+          <p class="text-xs text-gray-400 mt-0.5">{{ monthProfitLoss >= 0 ? 'profit' : 'loss' }}</p>
+        </button>
+
+        <!-- Pending Partner Reports -->
+        <button
+          @click="router.push('/admin/sales')"
+          class="bg-white rounded-xl shadow-soft p-4 text-left hover:shadow-medium transition-shadow"
+        >
+          <div class="flex items-center gap-2 mb-2">
+            <div :class="['w-8 h-8 rounded-lg flex items-center justify-center', pendingPartnerReports > 0 ? 'bg-yellow-50' : 'bg-green-50']">
+              <svg v-if="pendingPartnerReports > 0" class="w-4 h-4 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              <svg v-else class="w-4 h-4 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M5 13l4 4L19 7"/></svg>
+            </div>
+            <span class="text-xs text-gray-400">Partner Reports</span>
+          </div>
+          <p :class="['text-2xl font-bold', pendingPartnerReports > 0 ? 'text-yellow-600' : 'text-green-600']">
+            {{ pendingPartnerReports }}
+          </p>
+          <p class="text-xs text-gray-400 mt-0.5">{{ pendingPartnerReports > 0 ? 'pending' : 'all submitted' }}</p>
         </button>
       </div>
 
