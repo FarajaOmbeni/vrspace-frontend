@@ -50,6 +50,7 @@ const summary = computed(() => {
     if (!map[id]) {
       map[id] = {
         name: rec.profiles?.full_name || 'Unknown',
+        salary: Number(rec.profiles?.salary || 0),
         days: 0,
         totalHours: 0,
         overtimeHours: 0,
@@ -61,7 +62,11 @@ const summary = computed(() => {
   }
 
   return Object.values(map)
-    .map((e) => ({ ...e, pay: Math.round(e.totalHours * hourlyRate.value) }))
+    .map((e) => ({
+      ...e,
+      overtimePay: Math.round(e.overtimeHours * hourlyRate.value),
+      totalPay: e.salary + Math.round(e.overtimeHours * hourlyRate.value),
+    }))
     .sort((a, b) => b.totalHours - a.totalHours)
 })
 
@@ -185,9 +190,9 @@ onMounted(loadData)
       >
         <div class="flex items-center justify-between mb-2">
           <p class="font-medium text-gray-900">{{ emp.name }}</p>
-          <p class="text-lg font-bold text-green-600">{{ emp.pay.toLocaleString('en-KE') }} KES</p>
+          <p class="text-lg font-bold text-green-600">{{ emp.totalPay.toLocaleString('en-KE') }} KES</p>
         </div>
-        <div class="grid grid-cols-3 gap-2 text-center">
+        <div class="grid grid-cols-2 gap-2 text-center mb-2">
           <div>
             <p class="text-xs text-gray-400">Days</p>
             <p class="text-lg font-bold text-gray-900">{{ emp.days }}</p>
@@ -196,10 +201,22 @@ onMounted(loadData)
             <p class="text-xs text-gray-400">Hours</p>
             <p class="text-lg font-bold text-purple">{{ formatHours(emp.totalHours) }}</p>
           </div>
+        </div>
+        <div class="grid grid-cols-3 gap-2 text-center">
           <div>
             <p class="text-xs text-gray-400">Overtime</p>
-            <p :class="['text-lg font-bold', emp.overtimeHours > 0 ? 'text-orange-600' : 'text-gray-400']">
+            <p :class="['text-sm font-bold', emp.overtimeHours > 0 ? 'text-orange-600' : 'text-gray-400']">
               {{ formatHours(emp.overtimeHours) }}
+            </p>
+          </div>
+          <div>
+            <p class="text-xs text-gray-400">Salary</p>
+            <p class="text-sm font-bold text-gray-900">{{ emp.salary.toLocaleString('en-KE') }}</p>
+          </div>
+          <div>
+            <p class="text-xs text-gray-400">OT Pay</p>
+            <p :class="['text-sm font-bold', emp.overtimePay > 0 ? 'text-orange-600' : 'text-gray-400']">
+              {{ emp.overtimePay.toLocaleString('en-KE') }}
             </p>
           </div>
         </div>
@@ -212,10 +229,12 @@ onMounted(loadData)
         <thead class="bg-gray-50 border-b border-gray-200">
           <tr>
             <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">Employee</th>
-            <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">Days Worked</th>
-            <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">Total Hours</th>
+            <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">Days</th>
+            <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">Hours</th>
             <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">Overtime</th>
-            <th class="text-right text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">Pay (KES)</th>
+            <th class="text-right text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">Salary</th>
+            <th class="text-right text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">OT Pay</th>
+            <th class="text-right text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">Total Pay</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-100">
@@ -228,7 +247,9 @@ onMounted(loadData)
                 {{ formatHours(emp.overtimeHours) }}
               </span>
             </td>
-            <td class="px-6 py-4 text-right text-sm font-bold text-green-600">{{ emp.pay.toLocaleString('en-KE') }}</td>
+            <td class="px-6 py-4 text-right text-sm text-gray-900">{{ emp.salary.toLocaleString('en-KE') }}</td>
+            <td class="px-6 py-4 text-right text-sm font-medium text-orange-600">{{ emp.overtimePay.toLocaleString('en-KE') }}</td>
+            <td class="px-6 py-4 text-right text-sm font-bold text-green-600">{{ emp.totalPay.toLocaleString('en-KE') }}</td>
           </tr>
         </tbody>
         <!-- Totals row -->
@@ -238,7 +259,9 @@ onMounted(loadData)
             <td class="px-6 py-3 text-sm font-bold text-gray-900">{{ summary.reduce((a, e) => a + e.days, 0) }}</td>
             <td class="px-6 py-3 text-sm font-bold text-purple">{{ formatHours(summary.reduce((a, e) => a + e.totalHours, 0)) }}</td>
             <td class="px-6 py-3 text-sm font-bold text-orange-600">{{ formatHours(summary.reduce((a, e) => a + e.overtimeHours, 0)) }}</td>
-            <td class="px-6 py-3 text-right text-sm font-bold text-green-600">{{ summary.reduce((a, e) => a + e.pay, 0).toLocaleString('en-KE') }}</td>
+            <td class="px-6 py-3 text-right text-sm font-bold text-gray-900">{{ summary.reduce((a, e) => a + e.salary, 0).toLocaleString('en-KE') }}</td>
+            <td class="px-6 py-3 text-right text-sm font-bold text-orange-600">{{ summary.reduce((a, e) => a + e.overtimePay, 0).toLocaleString('en-KE') }}</td>
+            <td class="px-6 py-3 text-right text-sm font-bold text-green-600">{{ summary.reduce((a, e) => a + e.totalPay, 0).toLocaleString('en-KE') }}</td>
           </tr>
         </tfoot>
       </table>

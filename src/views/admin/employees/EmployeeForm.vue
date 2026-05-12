@@ -13,6 +13,7 @@ const form = ref({
   email: '',
   password: '',
   role: 'employee',
+  salary: 0,
 })
 const showPassword = ref(false)
 const loading = ref(false)
@@ -115,6 +116,22 @@ async function handleSubmit() {
           <option value="employee">Employee</option>
           <option value="admin">Admin</option>
         </select>
+      </div>
+
+      <!-- Salary -->
+      <div>
+        <label for="salary" class="block text-sm font-medium text-gray-700 mb-1">
+          Monthly Salary (KES)
+        </label>
+        <input
+          id="salary"
+          v-model.number="form.salary"
+          type="number"
+          min="0"
+          step="500"
+          placeholder="e.g. 25000"
+          class="w-full rounded-xl border-gray-300 px-4 py-3 text-base focus:border-purple-500 focus:ring-purple-500"
+        />
       </div>
 
       <!-- Actions -->

@@ -8,7 +8,7 @@ import { toast } from 'vue-sonner'
 
 defineOptions({ name: 'ClockInOut' })
 
-const { user, isAdmin } = useAuth()
+const { user, profile, isAdmin } = useAuth()
 const { position, error: geoError, loading: geoLoading, getPosition, isWithinRadius } = useGeolocation()
 
 const record = ref(null)
@@ -21,11 +21,14 @@ const locationDistance = ref(null)
 const monthlyHours = ref(0)
 const monthlyOvertime = ref(0)
 const hourlyRate = ref(400)
+const previousMonths = ref([])
 let timer = null
 
 const isClockedIn = computed(() => record.value && !record.value.clock_out)
 const isClockedOut = computed(() => record.value && record.value.clock_out)
-const monthlyPay = computed(() => Math.round(monthlyHours.value * hourlyRate.value))
+const salary = computed(() => Number(profile.value?.salary || 0))
+const overtimePay = computed(() => Math.round(monthlyOvertime.value * hourlyRate.value))
+const totalPay = computed(() => salary.value + overtimePay.value)
 
 function formatTime(dateStr) {
   return new Date(dateStr).toLocaleTimeString('en-KE', {
@@ -121,6 +124,30 @@ async function loadRecord() {
 
     monthlyHours.value = monthlyData.reduce((a, r) => a + Number(r.total_hours || 0), 0)
     monthlyOvertime.value = monthlyData.reduce((a, r) => a + Number(r.overtime_hours || 0), 0)
+
+    // Load previous 3 months
+    const prevMonthsData = []
+    for (let m = 1; m <= 3; m++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - m, 1)
+      const pStart = d.toISOString().split('T')[0]
+      const pEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0]
+      const label = d.toLocaleDateString('en-KE', { month: 'long', year: 'numeric' })
+
+      try {
+        const data = await getEmployeeHours({
+          employeeId: user.value.id,
+          startDate: pStart,
+          endDate: pEnd,
+        })
+        const hours = data.reduce((a, r) => a + Number(r.total_hours || 0), 0)
+        const overtime = data.reduce((a, r) => a + Number(r.overtime_hours || 0), 0)
+        const otPay = Math.round(overtime * hourlyRate.value)
+        prevMonthsData.push({ label, hours, overtime, otPay, totalPay: Number(profile.value?.salary || 0) + otPay })
+      } catch (e) {
+        prevMonthsData.push({ label, hours: 0, overtime: 0, otPay: 0, totalPay: Number(profile.value?.salary || 0) })
+      }
+    }
+    previousMonths.value = prevMonthsData
 
     if (isClockedIn.value) {
       startTimer()
@@ -333,7 +360,7 @@ onUnmounted(stopTimer)
       <!-- Monthly summary -->
       <div class="w-full max-w-2xl mx-auto mt-6 bg-white rounded-2xl shadow-soft p-6">
         <h2 class="text-lg font-header font-bold text-gray-900 mb-4">This Month</h2>
-        <div class="grid grid-cols-3 gap-4 text-center">
+        <div class="grid grid-cols-2 gap-4 text-center mb-3">
           <div>
             <p class="text-xs text-gray-400">Hours</p>
             <p class="text-xl font-bold text-purple">{{ formatHours(monthlyHours) }}</p>
@@ -344,9 +371,38 @@ onUnmounted(stopTimer)
               {{ formatHours(monthlyOvertime) }}
             </p>
           </div>
+        </div>
+        <div class="grid grid-cols-3 gap-4 text-center">
           <div>
-            <p class="text-xs text-gray-400">Pay</p>
-            <p class="text-xl font-bold text-green-600">{{ monthlyPay.toLocaleString('en-KE') }} KES</p>
+            <p class="text-xs text-gray-400">Salary</p>
+            <p class="text-sm font-bold text-gray-900">{{ salary.toLocaleString('en-KE') }}</p>
+          </div>
+          <div>
+            <p class="text-xs text-gray-400">OT Pay</p>
+            <p class="text-sm font-bold text-orange-600">{{ overtimePay.toLocaleString('en-KE') }}</p>
+          </div>
+          <div>
+            <p class="text-xs text-gray-400">Total Pay</p>
+            <p class="text-sm font-bold text-green-600">{{ totalPay.toLocaleString('en-KE') }}</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Previous months -->
+      <div v-if="previousMonths.length > 0" class="w-full max-w-2xl mx-auto mt-4 space-y-3">
+        <h2 class="text-sm font-semibold text-gray-500">Previous Months</h2>
+        <div
+          v-for="month in previousMonths"
+          :key="month.label"
+          class="bg-white rounded-xl shadow-soft p-4 flex items-center justify-between"
+        >
+          <div>
+            <p class="text-sm font-medium text-gray-900">{{ month.label }}</p>
+            <p class="text-xs text-gray-400">{{ formatHours(month.hours) }} total &middot; {{ formatHours(month.overtime) }} OT</p>
+          </div>
+          <div class="text-right">
+            <p class="text-sm font-bold text-green-600">{{ month.totalPay.toLocaleString('en-KE') }} KES</p>
+            <p v-if="month.otPay > 0" class="text-xs text-orange-600">+{{ month.otPay.toLocaleString('en-KE') }} OT</p>
           </div>
         </div>
       </div>

@@ -1,0 +1,168 @@
+-- ============================================
+-- VRSpace Dummy Data
+-- For existing users: Admin, Sarah, Kevin
+-- Creates: 30 days of attendance, sessions, and daily sales
+-- ============================================
+
+DO $$
+DECLARE
+  emp_sarah UUID := '9202de86-5eb3-47ef-9272-a8add50bc837';
+  emp_kevin UUID := 'b1a75f12-3068-462d-a241-f1d65d52f618';
+  admin_id UUID := 'a8bd8c7a-9e6b-4d33-8723-3129ff165359';
+
+  m_ps5 UUID := '69ed931c-dd0b-4d53-ad64-255ecfba37ee';
+  m_nintendo UUID := '98de04ac-e6fd-4b8c-90dd-70eb07594fc8';
+  m_gt UUID := '44f230a7-6c0f-4b9a-8864-6c7827f1eb9e';
+  m_egg UUID := 'e0771c25-c331-4209-80b0-476153571f47';
+  m_htc UUID := 'ed5a8eb9-229f-4634-a638-85a98ae6573b';
+  m_meta UUID := '91fe8652-269d-48d0-b9be-41f43069287a';
+
+  d DATE;
+  clock_in_time TIMESTAMPTZ;
+  clock_out_time TIMESTAMPTZ;
+  total_h NUMERIC(5,2);
+  overtime_h NUMERIC(5,2);
+BEGIN
+
+  -- Generate 30 days of data (Apr 12 - May 11, 2026)
+  FOR i IN 0..29 LOOP
+    d := '2026-04-12'::DATE + i;
+
+    -- Skip Sundays
+    IF EXTRACT(DOW FROM d) = 0 THEN
+      CONTINUE;
+    END IF;
+
+    -- ============================================
+    -- ATTENDANCE
+    -- ============================================
+
+    -- Sarah: works Mon-Sat, 11am-10pm, occasional overtime
+    IF EXTRACT(DOW FROM d) BETWEEN 1 AND 6 THEN
+      clock_in_time := d + INTERVAL '11 hours' + (random() * INTERVAL '10 minutes');
+      IF i % 6 = 0 THEN
+        -- Late shift (overtime)
+        clock_out_time := d + INTERVAL '23 hours' + (random() * INTERVAL '30 minutes');
+      ELSIF i % 4 = 0 THEN
+        -- Slightly late
+        clock_out_time := d + INTERVAL '22 hours 15 minutes' + (random() * INTERVAL '15 minutes');
+      ELSE
+        -- Normal shift
+        clock_out_time := d + INTERVAL '21 hours 45 minutes' + (random() * INTERVAL '15 minutes');
+      END IF;
+      total_h := ROUND(EXTRACT(EPOCH FROM (clock_out_time - clock_in_time)) / 3600.0, 2);
+      IF clock_out_time > (d + INTERVAL '22 hours') THEN
+        overtime_h := ROUND(EXTRACT(EPOCH FROM (clock_out_time - (d + INTERVAL '22 hours'))) / 3600.0, 2);
+      ELSE
+        overtime_h := 0;
+      END IF;
+
+      INSERT INTO attendance (employee_id, clock_in, clock_out, date, total_hours, overtime_hours)
+      VALUES (emp_sarah, clock_in_time, clock_out_time, d, total_h, overtime_h)
+      ON CONFLICT (employee_id, date) DO NOTHING;
+    END IF;
+
+    -- Kevin: works Mon-Fri + some Saturdays, noon-10pm
+    IF EXTRACT(DOW FROM d) BETWEEN 1 AND 5 OR (EXTRACT(DOW FROM d) = 6 AND i % 3 = 0) THEN
+      clock_in_time := d + INTERVAL '12 hours' + (random() * INTERVAL '15 minutes');
+      IF i % 7 = 0 THEN
+        -- Overtime day
+        clock_out_time := d + INTERVAL '23 hours 15 minutes' + (random() * INTERVAL '20 minutes');
+      ELSE
+        clock_out_time := d + INTERVAL '22 hours' + (random() * INTERVAL '10 minutes');
+      END IF;
+      total_h := ROUND(EXTRACT(EPOCH FROM (clock_out_time - clock_in_time)) / 3600.0, 2);
+      IF clock_out_time > (d + INTERVAL '22 hours') THEN
+        overtime_h := ROUND(EXTRACT(EPOCH FROM (clock_out_time - (d + INTERVAL '22 hours'))) / 3600.0, 2);
+      ELSE
+        overtime_h := 0;
+      END IF;
+
+      INSERT INTO attendance (employee_id, clock_in, clock_out, date, total_hours, overtime_hours)
+      VALUES (emp_kevin, clock_in_time, clock_out_time, d, total_h, overtime_h)
+      ON CONFLICT (employee_id, date) DO NOTHING;
+    END IF;
+
+    -- ============================================
+    -- SESSIONS
+    -- ============================================
+
+    -- Sarah logs sessions on her working days
+    IF EXTRACT(DOW FROM d) BETWEEN 1 AND 6 THEN
+      INSERT INTO sessions (employee_id, machine_id, session_count, price_per_session, date, created_at)
+      VALUES
+        (emp_sarah, m_ps5, 2 + (random() * 4)::INT, 500, d, d + INTERVAL '12 hours'),
+        (emp_sarah, m_htc, 1 + (random() * 3)::INT, 500, d, d + INTERVAL '14 hours'),
+        (emp_sarah, m_nintendo, 1 + (random() * 2)::INT, 500, d, d + INTERVAL '16 hours');
+
+      -- Extra sessions on busy days
+      IF EXTRACT(DOW FROM d) IN (5, 6) THEN
+        INSERT INTO sessions (employee_id, machine_id, session_count, price_per_session, date, created_at)
+        VALUES
+          (emp_sarah, m_meta, 2 + (random() * 3)::INT, 500, d, d + INTERVAL '17 hours'),
+          (emp_sarah, m_egg, 1 + (random() * 3)::INT, 500, d, d + INTERVAL '18 hours');
+      END IF;
+    END IF;
+
+    -- Kevin logs sessions on his working days
+    IF EXTRACT(DOW FROM d) BETWEEN 1 AND 5 OR (EXTRACT(DOW FROM d) = 6 AND i % 3 = 0) THEN
+      INSERT INTO sessions (employee_id, machine_id, session_count, price_per_session, date, created_at)
+      VALUES
+        (emp_kevin, m_gt, 2 + (random() * 3)::INT, 500, d, d + INTERVAL '13 hours'),
+        (emp_kevin, m_egg, 1 + (random() * 3)::INT, 500, d, d + INTERVAL '15 hours'),
+        (emp_kevin, m_ps5, 1 + (random() * 2)::INT, 500, d, d + INTERVAL '17 hours');
+
+      -- Weekend bonus
+      IF EXTRACT(DOW FROM d) = 6 THEN
+        INSERT INTO sessions (employee_id, machine_id, session_count, price_per_session, date, created_at)
+        VALUES
+          (emp_kevin, m_htc, 2 + (random() * 4)::INT, 500, d, d + INTERVAL '18 hours 30 minutes');
+      END IF;
+    END IF;
+
+  END LOOP;
+
+  -- ============================================
+  -- DAILY SALES: Compute from sessions + add partner reports
+  -- ============================================
+
+  -- Compute daily totals for all dates with sessions
+  FOR d IN SELECT DISTINCT s.date FROM sessions s ORDER BY s.date LOOP
+    PERFORM compute_daily_sales(d);
+  END LOOP;
+
+  -- Add partner reported revenue (with some discrepancies)
+  FOR d IN SELECT DISTINCT s.date FROM sessions s WHERE s.date < CURRENT_DATE ORDER BY s.date LOOP
+    DECLARE
+      v_revenue NUMERIC(10,2);
+      v_partner NUMERIC(10,2);
+      v_rand FLOAT;
+    BEGIN
+      SELECT total_revenue INTO v_revenue FROM daily_sales WHERE daily_sales.date = d;
+      v_rand := random();
+
+      IF v_rand < 0.60 THEN
+        -- 60% of days: exact match
+        v_partner := v_revenue;
+      ELSIF v_rand < 0.80 THEN
+        -- 20%: partner reports less (500-2000 KES less)
+        v_partner := v_revenue - (500 * (1 + (random() * 3)::INT));
+      ELSE
+        -- 20%: partner reports more (500-1500 KES more)
+        v_partner := v_revenue + (500 * (1 + (random() * 2)::INT));
+      END IF;
+
+      UPDATE daily_sales
+      SET partner_reported_revenue = v_partner,
+          discrepancy = v_revenue - v_partner,
+          logged_by = admin_id,
+          notes = CASE
+            WHEN v_revenue - v_partner > 0 THEN 'Partner underreported - check with them'
+            WHEN v_revenue - v_partner < 0 THEN 'We may have missed some sessions'
+            ELSE NULL
+          END
+      WHERE daily_sales.date = d;
+    END;
+  END LOOP;
+
+END $$;

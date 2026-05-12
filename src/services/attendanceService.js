@@ -66,7 +66,7 @@ export async function listAttendance({ employeeId, startDate, endDate } = {}) {
 export async function getEmployeeHours({ employeeId, startDate, endDate } = {}) {
   let query = supabase
     .from('attendance')
-    .select('*, profiles:employee_id(full_name)')
+    .select('*, profiles:employee_id(full_name, salary)')
     .not('clock_out', 'is', null)
     .order('date', { ascending: false })
 
