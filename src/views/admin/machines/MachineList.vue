@@ -95,8 +95,9 @@ onMounted(loadMachines)
       </button>
     </div>
 
+    <template v-else>
     <!-- Mobile: Card grid -->
-    <div v-else class="md:hidden grid grid-cols-2 gap-3">
+    <div class="md:hidden grid grid-cols-2 gap-3">
       <div
         v-for="machine in filteredMachines"
         :key="machine.id"
@@ -157,7 +158,7 @@ onMounted(loadMachines)
     </div>
 
     <!-- Desktop: Table -->
-    <div v-else class="hidden md:block bg-white rounded-xl shadow-soft overflow-hidden">
+    <div class="hidden md:block bg-white rounded-xl shadow-soft overflow-hidden">
       <table class="w-full">
         <thead class="bg-gray-50 border-b border-gray-200">
           <tr>
@@ -215,6 +216,7 @@ onMounted(loadMachines)
         </tbody>
       </table>
     </div>
+    </template>
 
     <!-- Mobile: FAB -->
     <button

@@ -91,8 +91,9 @@ onMounted(loadEmployees)
       </button>
     </div>
 
+    <template v-else>
     <!-- Mobile: Card list -->
-    <div v-else class="md:hidden space-y-3">
+    <div class="md:hidden space-y-3">
       <div
         v-for="emp in filteredEmployees"
         :key="emp.id"
@@ -142,7 +143,7 @@ onMounted(loadEmployees)
     </div>
 
     <!-- Desktop: Table -->
-    <div v-else class="hidden md:block bg-white rounded-xl shadow-soft overflow-hidden">
+    <div class="hidden md:block bg-white rounded-xl shadow-soft overflow-hidden">
       <table class="w-full">
         <thead class="bg-gray-50 border-b border-gray-200">
           <tr>
@@ -198,5 +199,6 @@ onMounted(loadEmployees)
         </tbody>
       </table>
     </div>
+    </template>
   </div>
 </template>

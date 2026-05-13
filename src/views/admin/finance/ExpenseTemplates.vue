@@ -140,8 +140,9 @@ onMounted(loadTemplates)
       <button @click="openAdd" class="mt-4 text-purple font-medium text-sm hover:underline">Add your first template</button>
     </div>
 
+    <template v-else>
     <!-- Mobile: cards -->
-    <div v-else class="md:hidden space-y-3">
+    <div class="md:hidden space-y-3">
       <div
         v-for="t in templates"
         :key="t.id"
@@ -169,7 +170,7 @@ onMounted(loadTemplates)
     </div>
 
     <!-- Desktop: table -->
-    <div v-else class="hidden md:block bg-white rounded-xl shadow-soft overflow-hidden">
+    <div class="hidden md:block bg-white rounded-xl shadow-soft overflow-hidden">
       <table class="w-full">
         <thead class="bg-gray-50 border-b border-gray-200">
           <tr>
@@ -201,5 +202,6 @@ onMounted(loadTemplates)
         </tbody>
       </table>
     </div>
+    </template>
   </div>
 </template>

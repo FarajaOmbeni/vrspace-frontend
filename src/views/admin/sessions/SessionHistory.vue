@@ -71,8 +71,9 @@ onMounted(loadSessions)
       <p class="text-gray-400 text-lg">No sessions for this date</p>
     </div>
 
+    <template v-else>
     <!-- Mobile: cards -->
-    <div v-else class="md:hidden space-y-2">
+    <div class="md:hidden space-y-2">
       <div
         v-for="s in sessions"
         :key="s.id"
@@ -88,7 +89,7 @@ onMounted(loadSessions)
     </div>
 
     <!-- Desktop: table -->
-    <div v-else class="hidden md:block bg-white rounded-xl shadow-soft overflow-hidden">
+    <div class="hidden md:block bg-white rounded-xl shadow-soft overflow-hidden">
       <table class="w-full">
         <thead class="bg-gray-50 border-b border-gray-200">
           <tr>
@@ -110,5 +111,6 @@ onMounted(loadSessions)
         </tbody>
       </table>
     </div>
+    </template>
   </div>
 </template>

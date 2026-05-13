@@ -118,8 +118,9 @@ onMounted(loadData)
       <p class="text-gray-400 text-lg">No sales data for this period</p>
     </div>
 
+    <template v-else>
     <!-- Mobile: cards -->
-    <div v-else class="md:hidden space-y-3">
+    <div class="md:hidden space-y-3">
       <div
         v-for="r in records"
         :key="r.id"
@@ -157,7 +158,7 @@ onMounted(loadData)
     </div>
 
     <!-- Desktop: table -->
-    <div v-else class="hidden md:block bg-white rounded-xl shadow-soft overflow-hidden">
+    <div class="hidden md:block bg-white rounded-xl shadow-soft overflow-hidden">
       <table class="w-full">
         <thead class="bg-gray-50 border-b border-gray-200">
           <tr>
@@ -198,5 +199,6 @@ onMounted(loadData)
         </tfoot>
       </table>
     </div>
+    </template>
   </div>
 </template>

@@ -181,8 +181,9 @@ onMounted(loadData)
       <p class="text-gray-400 text-lg">No hours recorded for this period</p>
     </div>
 
+    <template v-else>
     <!-- Mobile: Cards -->
-    <div v-else class="md:hidden space-y-3">
+    <div class="md:hidden space-y-3">
       <div
         v-for="emp in summary"
         :key="emp.name"
@@ -224,7 +225,7 @@ onMounted(loadData)
     </div>
 
     <!-- Desktop: Table -->
-    <div v-else class="hidden md:block bg-white rounded-xl shadow-soft overflow-hidden">
+    <div class="hidden md:block bg-white rounded-xl shadow-soft overflow-hidden">
       <table class="w-full">
         <thead class="bg-gray-50 border-b border-gray-200">
           <tr>
@@ -266,5 +267,6 @@ onMounted(loadData)
         </tfoot>
       </table>
     </div>
+    </template>
   </div>
 </template>
