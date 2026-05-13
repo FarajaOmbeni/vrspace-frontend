@@ -125,20 +125,28 @@ onMounted(loadEmployees)
             </span>
           </div>
         </div>
-        <button
-          @click="handleToggle(emp)"
-          :class="[
-            'ml-3 relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
-            emp.is_active ? 'bg-green-500' : 'bg-gray-300',
-          ]"
-        >
-          <span
+        <div class="ml-3 flex items-center gap-2">
+          <button
+            @click="router.push(`/admin/employees/${emp.id}/edit`)"
+            class="text-gray-400 hover:text-purple transition-colors p-1"
+          >
+            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg>
+          </button>
+          <button
+            @click="handleToggle(emp)"
             :class="[
-              'pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform',
-              emp.is_active ? 'translate-x-5' : 'translate-x-0',
+              'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
+              emp.is_active ? 'bg-green-500' : 'bg-gray-300',
             ]"
-          />
-        </button>
+          >
+            <span
+              :class="[
+                'pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition-transform',
+                emp.is_active ? 'translate-x-5' : 'translate-x-0',
+              ]"
+            />
+          </button>
+        </div>
       </div>
     </div>
 
@@ -182,7 +190,13 @@ onMounted(loadEmployees)
                 {{ emp.is_active ? 'Active' : 'Inactive' }}
               </span>
             </td>
-            <td class="px-6 py-4 text-right">
+            <td class="px-6 py-4 text-right space-x-3">
+              <button
+                @click="router.push(`/admin/employees/${emp.id}/edit`)"
+                class="text-sm font-medium text-purple hover:text-purple-700 transition-colors"
+              >
+                Edit
+              </button>
               <button
                 @click="handleToggle(emp)"
                 :class="[

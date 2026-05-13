@@ -21,7 +21,7 @@ export async function getEmployee(id) {
   return data
 }
 
-export async function createEmployee({ email, password, full_name, role }) {
+export async function createEmployee({ email, password, full_name, role, salary }) {
   const { data: { session } } = await supabase.auth.getSession()
 
   const response = await fetch(
@@ -32,7 +32,7 @@ export async function createEmployee({ email, password, full_name, role }) {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${session.access_token}`,
       },
-      body: JSON.stringify({ email, password, full_name, role }),
+      body: JSON.stringify({ email, password, full_name, role, salary }),
     }
   )
 

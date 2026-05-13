@@ -1,12 +1,15 @@
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { createEmployee } from '@/services/employeeService'
+import { ref, computed, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { createEmployee, getEmployee, updateEmployee } from '@/services/employeeService'
 import { toast } from 'vue-sonner'
 
 defineOptions({ name: 'EmployeeForm' })
 
+const route = useRoute()
 const router = useRouter()
+
+const isEdit = computed(() => !!route.params.id)
 
 const form = ref({
   full_name: '',
@@ -17,15 +20,46 @@ const form = ref({
 })
 const showPassword = ref(false)
 const loading = ref(false)
+const loadingData = ref(false)
+
+onMounted(async () => {
+  if (isEdit.value) {
+    loadingData.value = true
+    try {
+      const emp = await getEmployee(route.params.id)
+      form.value = {
+        full_name: emp.full_name,
+        email: emp.email,
+        password: '',
+        role: emp.role,
+        salary: emp.salary || 0,
+      }
+    } catch (e) {
+      toast.error('Failed to load employee')
+      router.push('/admin/employees')
+    } finally {
+      loadingData.value = false
+    }
+  }
+})
 
 async function handleSubmit() {
   loading.value = true
   try {
-    await createEmployee(form.value)
-    toast.success(`${form.value.full_name} added successfully`)
+    if (isEdit.value) {
+      await updateEmployee(route.params.id, {
+        full_name: form.value.full_name,
+        role: form.value.role,
+        salary: form.value.salary,
+      })
+      toast.success(`${form.value.full_name} updated successfully`)
+    } else {
+      await createEmployee(form.value)
+      toast.success(`${form.value.full_name} added successfully`)
+    }
     router.push('/admin/employees')
   } catch (e) {
-    toast.error(e.message || 'Failed to create employee')
+    toast.error(e.message || `Failed to ${isEdit.value ? 'update' : 'create'} employee`)
   } finally {
     loading.value = false
   }
@@ -42,11 +76,18 @@ async function handleSubmit() {
       >
         <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg>
       </button>
-      <h1 class="text-2xl font-header font-bold text-gray-900">Add Employee</h1>
+      <h1 class="text-2xl font-header font-bold text-gray-900">
+        {{ isEdit ? 'Edit Employee' : 'Add Employee' }}
+      </h1>
+    </div>
+
+    <!-- Loading -->
+    <div v-if="loadingData" class="flex justify-center py-12">
+      <div class="w-8 h-8 border-4 border-purple/30 border-t-purple rounded-full animate-spin" />
     </div>
 
     <!-- Form -->
-    <form @submit.prevent="handleSubmit" class="bg-white rounded-xl shadow-soft p-6 space-y-5">
+    <form v-else @submit.prevent="handleSubmit" class="bg-white rounded-xl shadow-soft p-6 space-y-5">
       <!-- Full Name -->
       <div>
         <label for="full_name" class="block text-sm font-medium text-gray-700 mb-1">
@@ -62,8 +103,8 @@ async function handleSubmit() {
         />
       </div>
 
-      <!-- Email -->
-      <div>
+      <!-- Email (only on create) -->
+      <div v-if="!isEdit">
         <label for="email" class="block text-sm font-medium text-gray-700 mb-1">
           Email
         </label>
@@ -77,8 +118,14 @@ async function handleSubmit() {
         />
       </div>
 
-      <!-- Password -->
-      <div>
+      <!-- Email (read-only on edit) -->
+      <div v-if="isEdit">
+        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+        <p class="px-4 py-3 text-base text-gray-500 bg-gray-50 rounded-xl">{{ form.email }}</p>
+      </div>
+
+      <!-- Password (only on create) -->
+      <div v-if="!isEdit">
         <label for="password" class="block text-sm font-medium text-gray-700 mb-1">
           Password
         </label>
@@ -141,8 +188,8 @@ async function handleSubmit() {
           :disabled="loading"
           class="flex-1 bg-purple text-white font-semibold py-3 rounded-xl text-base hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <span v-if="loading">Creating...</span>
-          <span v-else>Create Employee</span>
+          <span v-if="loading">{{ isEdit ? 'Saving...' : 'Creating...' }}</span>
+          <span v-else>{{ isEdit ? 'Save Changes' : 'Create Employee' }}</span>
         </button>
         <button
           type="button"
