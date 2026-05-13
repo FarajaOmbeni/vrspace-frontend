@@ -5,7 +5,7 @@ import { useAuth } from '@/composables/useAuth'
 import { toast } from 'vue-sonner'
 
 const router = useRouter()
-const { updatePassword } = useAuth()
+const { updatePassword, signOut } = useAuth()
 
 const password = ref('')
 const confirmPassword = ref('')
@@ -30,7 +30,8 @@ async function handleSubmit() {
 
   try {
     await updatePassword(password.value)
-    toast.success('Password updated successfully')
+    await signOut()
+    toast.success('Password updated successfully. Please sign in.')
     router.push('/admin/login')
   } catch (e) {
     error.value = e.message || 'Failed to update password'
