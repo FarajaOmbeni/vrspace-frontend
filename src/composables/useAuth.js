@@ -65,6 +65,22 @@ async function signOut() {
   profile.value = null
 }
 
+async function resetPasswordForEmail(email) {
+  const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/reset-password`,
+  })
+  if (error) throw error
+  return data
+}
+
+async function updatePassword(newPassword) {
+  const { data, error } = await supabase.auth.updateUser({
+    password: newPassword,
+  })
+  if (error) throw error
+  return data
+}
+
 // Initialize on first import
 init()
 
@@ -76,6 +92,8 @@ export function useAuth() {
     isAuthenticated,
     isAdmin,
     signIn,
-    signOut
+    signOut,
+    resetPasswordForEmail,
+    updatePassword
   }
 }
