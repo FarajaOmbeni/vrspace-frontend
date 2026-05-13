@@ -5,7 +5,7 @@ import { useAuth } from '@/composables/useAuth'
 import {
   listMonthlyExpenses, populateMonth, deleteExpense, updateExpense,
   listAdditionalIncome, deleteAdditionalIncome,
-  getMonthStatus, getMonthlyVRRevenue, closeMonth, reopenMonth,
+  getMonthStatus, getMonthlyVRRevenue, getCumulativeFinanceThroughMonth, closeMonth, reopenMonth,
 } from '@/services/financeService'
 import { toast } from 'vue-sonner'
 
@@ -30,6 +30,9 @@ const populating = ref(false)
 const closing = ref(false)
 const showCloseConfirm = ref(false)
 
+/** Calendar-year cumulative through selected month (from getCumulativeFinanceThroughMonth). */
+const cumulative = ref(null)
+
 const isClosed = computed(() => monthStatus.value?.is_closed)
 
 const salaryExpenses = computed(() => expenses.value.filter((e) => e.type === 'salary'))
@@ -45,6 +48,14 @@ const monthLabel = computed(() => {
   const [y, m] = currentMonth.value.split('-').map(Number)
   const d = new Date(y, m - 1, 1)
   return d.toLocaleDateString('en-KE', { month: 'long', year: 'numeric' })
+})
+
+const cumulativeRangeLabel = computed(() => {
+  const [y, m] = currentMonth.value.split('-').map(Number)
+  const startD = new Date(y, 0, 1)
+  const endD = new Date(y, m - 1, 1)
+  const opts = { month: 'short', year: 'numeric' }
+  return `${startD.toLocaleDateString('en-KE', opts)} – ${endD.toLocaleDateString('en-KE', opts)}`
 })
 
 function formatPrice(amount) {
@@ -71,20 +82,30 @@ function nextMonth() {
 async function loadData() {
   loading.value = true
   try {
-    const [expData, incData, vr, status] = await Promise.all([
+    const [expData, incData, vr, status, cum] = await Promise.all([
       listMonthlyExpenses(currentMonth.value),
       listAdditionalIncome(currentMonth.value),
       getMonthlyVRRevenue(currentMonth.value),
       getMonthStatus(currentMonth.value),
+      getCumulativeFinanceThroughMonth(currentMonth.value),
     ])
     expenses.value = expData
     income.value = incData
     vrRevenue.value = vr
     monthStatus.value = status
+    cumulative.value = cum
   } catch (e) {
     toast.error('Failed to load data')
   } finally {
     loading.value = false
+  }
+}
+
+async function refreshCumulative() {
+  try {
+    cumulative.value = await getCumulativeFinanceThroughMonth(currentMonth.value)
+  } catch {
+    /* keep previous cumulative */
   }
 }
 
@@ -105,6 +126,7 @@ async function handleUpdateAmount(expense, newAmount) {
   try {
     await updateExpense(expense.id, { amount: newAmount })
     expense.amount = newAmount
+    await refreshCumulative()
   } catch (e) {
     toast.error(e.message || 'Failed to update')
   }
@@ -114,6 +136,7 @@ async function handleDeleteExpense(id) {
   try {
     await deleteExpense(id)
     expenses.value = expenses.value.filter((e) => e.id !== id)
+    await refreshCumulative()
     toast.success('Expense deleted')
   } catch (e) {
     toast.error(e.message || 'Failed to delete')
@@ -124,6 +147,7 @@ async function handleDeleteIncome(id) {
   try {
     await deleteAdditionalIncome(id)
     income.value = income.value.filter((i) => i.id !== id)
+    await refreshCumulative()
     toast.success('Income deleted')
   } catch (e) {
     toast.error(e.message || 'Failed to delete')
@@ -183,7 +207,7 @@ onMounted(loadData)
 
     <template v-else>
       <!-- Summary cards -->
-      <div class="grid grid-cols-3 gap-3 mb-6">
+      <div class="grid grid-cols-3 gap-3 mb-3">
         <div class="bg-white rounded-xl shadow-soft p-4 text-center">
           <p class="text-xs text-gray-400">Income</p>
           <p class="text-lg font-bold text-green-600">{{ formatPrice(totalIncome) }}</p>
@@ -196,6 +220,21 @@ onMounted(loadData)
           <p class="text-xs text-gray-400">Profit/Loss</p>
           <p :class="['text-lg font-bold', profitLoss >= 0 ? 'text-green-600' : 'text-red-500']">
             {{ profitLoss >= 0 ? '' : '-' }}{{ formatPrice(Math.abs(profitLoss)) }}
+          </p>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl shadow-soft p-4 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border border-gray-100">
+        <div class="min-w-0">
+          <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Cumulative profit / loss</p>
+          <p class="text-sm text-gray-500 mt-0.5">Calendar year: {{ cumulativeRangeLabel }}</p>
+        </div>
+        <div class="text-left sm:text-right flex-shrink-0">
+          <p :class="['text-xl font-bold tabular-nums', (cumulative?.profitLoss ?? 0) >= 0 ? 'text-green-600' : 'text-red-500']">
+            {{ (cumulative?.profitLoss ?? 0) >= 0 ? '' : '-' }}{{ formatPrice(Math.abs(cumulative?.profitLoss ?? 0)) }} KES
+          </p>
+          <p v-if="cumulative" class="text-xs text-gray-400 mt-1">
+            Income {{ formatPrice(cumulative.totalIncome) }} · Expenses {{ formatPrice(cumulative.totalExpenses) }}
           </p>
         </div>
       </div>

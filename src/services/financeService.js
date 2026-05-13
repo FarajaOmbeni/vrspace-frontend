@@ -274,6 +274,44 @@ export async function getMonthlyVRRevenue(month) {
   return (data || []).reduce((sum, r) => sum + vrOurShareForFinance(r), 0)
 }
 
+/** Calendar year through `throughMonth` (inclusive): same rules as the monthly overview (VR + additional income − expenses). */
+export async function getCumulativeFinanceThroughMonth(throughMonth) {
+  const [y, m] = throughMonth.split('-').map(Number)
+  const yearStart = `${y}-01-01`
+  const lastDay = localDateString(new Date(y, m, 0))
+
+  const [{ data: salesRows, error: salesErr }, { data: expRows, error: expErr }, { data: incRows, error: incErr }] =
+    await Promise.all([
+      supabase
+        .from('daily_sales')
+        .select('our_share, partner_reported_revenue')
+        .gte('date', yearStart)
+        .lte('date', lastDay),
+      supabase
+        .from('monthly_expenses')
+        .select('amount')
+        .gte('month', yearStart)
+        .lte('month', throughMonth),
+      supabase
+        .from('additional_income')
+        .select('amount')
+        .gte('month', yearStart)
+        .lte('month', throughMonth),
+    ])
+
+  if (salesErr) throw salesErr
+  if (expErr) throw expErr
+  if (incErr) throw incErr
+
+  const vrTotal = (salesRows || []).reduce((sum, r) => sum + vrOurShareForFinance(r), 0)
+  const additionalTotal = (incRows || []).reduce((sum, r) => sum + Number(r.amount || 0), 0)
+  const expenseTotal = (expRows || []).reduce((sum, r) => sum + Number(r.amount || 0), 0)
+  const totalIncome = vrTotal + additionalTotal
+  const profitLoss = totalIncome - expenseTotal
+
+  return { totalIncome, totalExpenses: expenseTotal, profitLoss, vrTotal, additionalTotal }
+}
+
 export async function closeMonth(month, closedBy, totalIncome, totalExpenses) {
   const { data, error } = await supabase
     .from('monthly_close')
