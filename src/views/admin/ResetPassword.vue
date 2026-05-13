@@ -16,35 +16,38 @@ const ready = ref(false)
 const invalidLink = ref(false)
 
 onMounted(async () => {
-  // PKCE flow: Supabase sends a ?code= param that must be exchanged for a session
-  const code = route.query.code
+  const params = new URLSearchParams(window.location.search)
+  const tokenHash = params.get('token_hash')
+  const type = params.get('type')
+  const code = params.get('code')
 
-  if (code) {
+  if (tokenHash && type) {
+    // Supabase email link with token_hash — verify OTP to establish session
+    const { error: otpError } = await supabase.auth.verifyOtp({
+      type,
+      token_hash: tokenHash,
+    })
+    if (otpError) {
+      invalidLink.value = true
+      return
+    }
+    ready.value = true
+  } else if (code) {
+    // PKCE flow with auth code
     const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
     if (exchangeError) {
       invalidLink.value = true
       return
     }
     ready.value = true
-    return
-  }
-
-  // Legacy/implicit flow: token comes via URL hash, handled automatically by Supabase
-  const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-    if (event === 'PASSWORD_RECOVERY') {
-      ready.value = true
-    }
-  })
-
-  // Check if session already exists
-  const { data: { session } } = await supabase.auth.getSession()
-  if (session) {
-    ready.value = true
   } else {
-    // No code, no session — invalid link
-    setTimeout(() => {
-      if (!ready.value) invalidLink.value = true
-    }, 3000)
+    // No token — check if session already exists (e.g. hash-based redirect)
+    const { data: { session } } = await supabase.auth.getSession()
+    if (session) {
+      ready.value = true
+    } else {
+      invalidLink.value = true
+    }
   }
 })
 
