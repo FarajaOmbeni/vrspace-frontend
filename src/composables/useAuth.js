@@ -34,12 +34,12 @@ async function init() {
     await fetchProfile(session.user.id)
   }
 
-  supabase.auth.onAuthStateChange(async (event, session) => {
+  supabase.auth.onAuthStateChange((event, session) => {
     if (event === 'PASSWORD_RECOVERY') return
 
     if (session?.user) {
       user.value = session.user
-      await fetchProfile(session.user.id)
+      fetchProfile(session.user.id)
     } else {
       user.value = null
       profile.value = null
