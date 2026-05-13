@@ -250,6 +250,15 @@ export async function getMonthStatus(month) {
   return data
 }
 
+/** Finance VR line: 50% of partner-reported gross when set; else session-derived our_share. */
+function vrOurShareForFinance(row) {
+  if (row.partner_reported_revenue != null) {
+    const p = Number(row.partner_reported_revenue)
+    if (!Number.isNaN(p)) return p * 0.5
+  }
+  return Number(row.our_share || 0)
+}
+
 export async function getMonthlyVRRevenue(month) {
   const startDate = month
   const [y, m] = month.split('-').map(Number)
@@ -257,12 +266,12 @@ export async function getMonthlyVRRevenue(month) {
 
   const { data, error } = await supabase
     .from('daily_sales')
-    .select('our_share')
+    .select('our_share, partner_reported_revenue')
     .gte('date', startDate)
     .lte('date', endDate)
 
   if (error) throw error
-  return (data || []).reduce((sum, r) => sum + Number(r.our_share || 0), 0)
+  return (data || []).reduce((sum, r) => sum + vrOurShareForFinance(r), 0)
 }
 
 export async function closeMonth(month, closedBy, totalIncome, totalExpenses) {

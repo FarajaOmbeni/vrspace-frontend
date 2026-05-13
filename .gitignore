@@ -15,6 +15,12 @@ coverage
 *.local
 .env
 
+# Supabase SQL editor scratch files (not migrations)
+supabase/snippets/
+supabase/.branches/
+supabase/.temp/
+
+
 /cypress/videos/
 /cypress/screenshots/
 

@@ -230,7 +230,7 @@ onMounted(loadData)
           <div class="flex items-center justify-between px-4 py-3 border-b border-gray-100">
             <div>
               <p class="text-sm font-medium text-gray-900">VR Session Revenue (Our Share)</p>
-              <p class="text-xs text-gray-400">Auto-computed from daily sales</p>
+              <p class="text-xs text-gray-400">50% of partner-reported gross per day; session totals if partner not entered</p>
             </div>
             <p class="text-sm font-bold text-green-600">{{ formatPrice(vrRevenue) }} KES</p>
           </div>
