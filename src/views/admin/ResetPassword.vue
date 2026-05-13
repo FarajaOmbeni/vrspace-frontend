@@ -1,17 +1,52 @@
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
-import { useAuth } from '@/composables/useAuth'
+import { ref, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
+import { supabase } from '@/lib/supabase'
 import { toast } from 'vue-sonner'
 
 const router = useRouter()
-const { updatePassword, signOut } = useAuth()
+const route = useRoute()
 
 const password = ref('')
 const confirmPassword = ref('')
 const error = ref('')
 const loading = ref(false)
 const showPassword = ref(false)
+const ready = ref(false)
+const invalidLink = ref(false)
+
+onMounted(async () => {
+  // PKCE flow: Supabase sends a ?code= param that must be exchanged for a session
+  const code = route.query.code
+
+  if (code) {
+    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+    if (exchangeError) {
+      invalidLink.value = true
+      return
+    }
+    ready.value = true
+    return
+  }
+
+  // Legacy/implicit flow: token comes via URL hash, handled automatically by Supabase
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+    if (event === 'PASSWORD_RECOVERY') {
+      ready.value = true
+    }
+  })
+
+  // Check if session already exists
+  const { data: { session } } = await supabase.auth.getSession()
+  if (session) {
+    ready.value = true
+  } else {
+    // No code, no session — invalid link
+    setTimeout(() => {
+      if (!ready.value) invalidLink.value = true
+    }, 3000)
+  }
+})
 
 async function handleSubmit() {
   error.value = ''
@@ -29,8 +64,13 @@ async function handleSubmit() {
   loading.value = true
 
   try {
-    await updatePassword(password.value)
-    await signOut()
+    const { error: updateError } = await supabase.auth.updateUser({
+      password: password.value,
+    })
+
+    if (updateError) throw updateError
+
+    await supabase.auth.signOut()
     toast.success('Password updated successfully. Please sign in.')
     router.push('/admin/login')
   } catch (e) {
@@ -49,7 +89,26 @@ async function handleSubmit() {
         <p class="text-purple-300 mt-1 text-sm">Set New Password</p>
       </div>
 
-      <form @submit.prevent="handleSubmit" class="bg-white rounded-2xl shadow-strong p-6 space-y-5">
+      <!-- Invalid link -->
+      <div v-if="invalidLink" class="bg-white rounded-2xl shadow-strong p-6 space-y-5 text-center">
+        <div class="bg-red-50 text-red-600 text-sm rounded-lg px-4 py-3">
+          This reset link is invalid or has expired.
+        </div>
+        <RouterLink
+          to="/forgot-password"
+          class="block w-full bg-purple text-white font-semibold py-3 rounded-xl text-base text-center transition-colors hover:bg-purple-700"
+        >
+          Request a New Link
+        </RouterLink>
+      </div>
+
+      <!-- Loading session -->
+      <div v-else-if="!ready" class="text-center">
+        <div class="w-8 h-8 border-4 border-purple/30 border-t-purple rounded-full animate-spin mx-auto mb-4" />
+        <p class="text-purple-300 text-sm">Verifying reset link...</p>
+      </div>
+
+      <form v-else @submit.prevent="handleSubmit" class="bg-white rounded-2xl shadow-strong p-6 space-y-5">
         <p class="text-gray-500 text-sm">
           Enter your new password below.
         </p>
