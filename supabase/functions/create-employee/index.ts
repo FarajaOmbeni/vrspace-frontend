@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
     }
 
     // Parse request body
-    const { email, password, full_name, role } = await req.json();
+    const { email, password, full_name, role, salary } = await req.json();
 
     if (!email || !password || !full_name) {
       return new Response(
@@ -84,6 +84,14 @@ Deno.serve(async (req) => {
         JSON.stringify({ error: createError.message }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // Update salary if provided
+    if (salary != null && newUser.user) {
+      await adminClient
+        .from("profiles")
+        .update({ salary })
+        .eq("id", newUser.user.id);
     }
 
     return new Response(
