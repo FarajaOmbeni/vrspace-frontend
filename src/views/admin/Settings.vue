@@ -11,21 +11,22 @@ const form = ref({
   lng: 0,
   radius_meters: 100,
 })
+
+const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+const dayLabels = { monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed', thursday: 'Thu', friday: 'Fri', saturday: 'Sat', sunday: 'Sun' }
+
+const defaultSchedule = () =>
+  Object.fromEntries(days.map((d) => [d, { open: '11:00', close: '22:00' }]))
+
 const hoursForm = ref({
-  opening_hour: 11,
-  closing_hour: 22,
   hourly_rate: 400,
   timezone: 'Africa/Nairobi',
+  schedule: defaultSchedule(),
 })
+
 const loading = ref(true)
 const saving = ref(false)
 const savingHours = ref(false)
-
-function formatHour(h) {
-  const period = h >= 12 ? 'PM' : 'AM'
-  const display = h > 12 ? h - 12 : h === 0 ? 12 : h
-  return `${display}:00 ${period}`
-}
 
 async function loadSettings() {
   loading.value = true
@@ -35,7 +36,25 @@ async function loadSettings() {
       getSetting('working_hours').catch(() => null),
     ])
     if (loc) form.value = { ...loc }
-    if (hours) hoursForm.value = { ...hours }
+    if (hours) {
+      // Backward compatibility: convert old format to new schedule
+      if (hours.schedule) {
+        hoursForm.value = {
+          hourly_rate: hours.hourly_rate || 400,
+          timezone: hours.timezone || 'Africa/Nairobi',
+          schedule: { ...defaultSchedule(), ...hours.schedule },
+        }
+      } else {
+        // Old format: single opening_hour / closing_hour
+        const openStr = `${String(hours.opening_hour || 11).padStart(2, '0')}:00`
+        const closeStr = `${String(hours.closing_hour || 22).padStart(2, '0')}:00`
+        hoursForm.value = {
+          hourly_rate: hours.hourly_rate || 400,
+          timezone: hours.timezone || 'Africa/Nairobi',
+          schedule: Object.fromEntries(days.map((d) => [d, { open: openStr, close: closeStr }])),
+        }
+      }
+    }
   } catch (e) {
     toast.error('Failed to load settings')
   } finally {
@@ -200,34 +219,33 @@ onMounted(loadSettings)
     <form v-if="!loading" @submit.prevent="handleSaveHours" class="space-y-6 mt-6">
       <div class="bg-white rounded-xl shadow-soft p-6">
         <h2 class="text-lg font-header font-bold text-gray-900 mb-1">Working Hours</h2>
-        <p class="text-sm text-gray-500 mb-4">Hours worked after the closing time count as overtime.</p>
+        <p class="text-sm text-gray-500 mb-4">Set opening and closing times per day. Overtime is calculated from the closing time.</p>
 
-        <div class="grid grid-cols-2 gap-3 mb-4">
-          <div>
-            <label for="opening" class="block text-sm font-medium text-gray-700 mb-1">Opening Hour</label>
-            <select
-              id="opening"
-              v-model.number="hoursForm.opening_hour"
-              class="w-full rounded-xl border-gray-300 px-4 py-3 text-base focus:border-purple-500 focus:ring-purple-500"
-            >
-              <option v-for="h in 24" :key="h-1" :value="h-1">{{ formatHour(h-1) }}</option>
-            </select>
-          </div>
-          <div>
-            <label for="closing" class="block text-sm font-medium text-gray-700 mb-1">Closing Hour</label>
-            <select
-              id="closing"
-              v-model.number="hoursForm.closing_hour"
-              class="w-full rounded-xl border-gray-300 px-4 py-3 text-base focus:border-purple-500 focus:ring-purple-500"
-            >
-              <option v-for="h in 24" :key="h-1" :value="h-1">{{ formatHour(h-1) }}</option>
-            </select>
+        <!-- Weekly Schedule -->
+        <div class="space-y-3 mb-4">
+          <div
+            v-for="day in days"
+            :key="day"
+            class="flex items-center gap-3"
+          >
+            <span class="w-10 text-sm font-medium text-gray-700">{{ dayLabels[day] }}</span>
+            <input
+              v-model="hoursForm.schedule[day].open"
+              type="time"
+              class="flex-1 rounded-lg border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:ring-purple-500"
+            />
+            <span class="text-gray-400 text-xs">to</span>
+            <input
+              v-model="hoursForm.schedule[day].close"
+              type="time"
+              class="flex-1 rounded-lg border-gray-300 px-3 py-2 text-sm focus:border-purple-500 focus:ring-purple-500"
+            />
           </div>
         </div>
 
         <!-- Hourly Rate -->
         <div class="mb-4">
-          <label for="hourlyRate" class="block text-sm font-medium text-gray-700 mb-1">Hourly Rate (KES)</label>
+          <label for="hourlyRate" class="block text-sm font-medium text-gray-700 mb-1">Overtime Rate (KES/hr)</label>
           <input
             id="hourlyRate"
             v-model.number="hoursForm.hourly_rate"
@@ -237,11 +255,11 @@ onMounted(loadSettings)
             required
             class="w-full rounded-xl border-gray-300 px-4 py-3 text-base focus:border-purple-500 focus:ring-purple-500"
           />
-          <p class="text-xs text-gray-400 mt-1">Used to calculate employee pay</p>
+          <p class="text-xs text-gray-400 mt-1">Used to calculate overtime pay</p>
         </div>
 
         <!-- Timezone -->
-        <div class="mb-4">
+        <div>
           <label for="timezone" class="block text-sm font-medium text-gray-700 mb-1">Timezone</label>
           <select
             id="timezone"
@@ -255,14 +273,7 @@ onMounted(loadSettings)
             <option value="Africa/Johannesburg">Africa/Johannesburg (SAST, UTC+2)</option>
             <option value="UTC">UTC</option>
           </select>
-          <p class="text-xs text-gray-400 mt-1">Used for overtime calculation (closing hour is in this timezone)</p>
         </div>
-
-        <p class="text-xs text-gray-400">
-          Current: {{ formatHour(hoursForm.opening_hour) }} — {{ formatHour(hoursForm.closing_hour) }}.
-          Overtime starts after {{ formatHour(hoursForm.closing_hour) }}.
-          Pay: {{ hoursForm.hourly_rate }} KES/hr. Timezone: {{ hoursForm.timezone }}.
-        </p>
       </div>
 
       <button
