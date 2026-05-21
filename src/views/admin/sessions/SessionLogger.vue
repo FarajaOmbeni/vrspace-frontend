@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 import { listMachines } from '@/services/machineService'
 import { logSession, getTodaySessions, deleteSession, getTodayTotals } from '@/services/sessionService'
+import { listPartnerStaff } from '@/services/partnerStaffService'
 import { toast } from 'vue-sonner'
 
 defineOptions({ name: 'SessionLogger' })
@@ -12,12 +13,14 @@ const { user } = useAuth()
 const machines = ref([])
 const sessions = ref([])
 const totals = ref({ sessions: 0, revenue: 0 })
+const partnerStaffList = ref([])
 const loading = ref(true)
 
 // Session modal
 const showModal = ref(false)
 const modalMachine = ref(null)
 const modalCount = ref(1)
+const modalPartnerStaffId = ref('')
 const modalActing = ref(false)
 
 function formatPrice(amount) {
@@ -34,14 +37,16 @@ function formatTime(dateStr) {
 async function loadData() {
   loading.value = true
   try {
-    const [machineData, sessionData, totalData] = await Promise.all([
+    const [machineData, sessionData, totalData, staffData] = await Promise.all([
       listMachines({ activeOnly: true }),
       getTodaySessions(user.value.id),
       getTodayTotals(),
+      listPartnerStaff({ activeOnly: true }),
     ])
     machines.value = machineData
     sessions.value = sessionData
     totals.value = totalData
+    partnerStaffList.value = staffData
   } catch (e) {
     toast.error('Failed to load data')
   } finally {
@@ -65,6 +70,7 @@ async function refreshTotals() {
 function openModal(machine) {
   modalMachine.value = machine
   modalCount.value = 1
+  modalPartnerStaffId.value = ''
   showModal.value = true
 }
 
@@ -86,6 +92,7 @@ async function submitModal() {
       machineId: modalMachine.value.id,
       sessionCount: modalCount.value,
       pricePerSession: modalMachine.value.price_per_session,
+      partnerStaffId: modalPartnerStaffId.value || null,
     })
     await refreshTotals()
     toast.success(`+${modalCount.value} ${modalMachine.value.name} session${modalCount.value > 1 ? 's' : ''}`, { duration: 2000 })
@@ -189,6 +196,7 @@ onMounted(loadData)
                   <p class="text-sm font-medium text-gray-900 truncate">{{ s.machines?.name }}</p>
                   <p class="text-xs text-gray-400">{{ s.session_count }} x {{ formatPrice(s.price_per_session) }} = {{ formatPrice(s.total_amount) }} KES</p>
                   <p class="text-xs text-gray-300">by {{ s.profiles?.full_name }}</p>
+                  <p v-if="s.partner_staff?.full_name" class="text-xs text-blue-400">via {{ s.partner_staff.full_name }}</p>
                 </div>
               </div>
               <div class="flex items-center gap-2 flex-shrink-0">
@@ -212,6 +220,7 @@ onMounted(loadData)
                   <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-2">Count</th>
                   <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-2">Amount</th>
                   <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-2">Logged By</th>
+                  <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-2">Served By</th>
                   <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-2">Time</th>
                   <th class="text-right text-xs font-semibold text-gray-500 uppercase tracking-wider px-4 py-2"></th>
                 </tr>
@@ -222,6 +231,7 @@ onMounted(loadData)
                   <td class="px-4 py-3 text-sm text-gray-900">{{ s.session_count }}</td>
                   <td class="px-4 py-3 text-sm font-semibold text-purple">{{ formatPrice(s.total_amount) }} KES</td>
                   <td class="px-4 py-3 text-sm text-gray-500">{{ s.profiles?.full_name }}</td>
+                  <td class="px-4 py-3 text-sm text-blue-500">{{ s.partner_staff?.full_name || '—' }}</td>
                   <td class="px-4 py-3 text-sm text-gray-400">{{ formatTime(s.created_at) }}</td>
                   <td class="px-4 py-3 text-right">
                     <button @click="handleDelete(s)" class="text-red-400 hover:text-red-600">
@@ -264,7 +274,49 @@ onMounted(loadData)
             </div>
 
             <h3 class="text-lg font-bold text-gray-900 mb-1">{{ modalMachine?.name }}</h3>
-            <p class="text-sm text-gray-500 mb-4">{{ formatPrice(modalMachine?.price_per_session) }} KES per session</p>
+            <p class="text-sm text-gray-500 mb-3">{{ formatPrice(modalMachine?.price_per_session) }} KES per session</p>
+
+            <!-- Partner staff (who brought the client) -->
+            <div v-if="partnerStaffList.length > 0" class="mb-4">
+              <p class="text-xs text-gray-400 mb-2">Served by</p>
+
+              <!-- 6 or fewer: wrapped pills -->
+              <div v-if="partnerStaffList.length <= 6" class="flex flex-wrap justify-center gap-2">
+                <button
+                  v-for="staff in partnerStaffList"
+                  :key="staff.id"
+                  @click="modalPartnerStaffId = modalPartnerStaffId === staff.id ? '' : staff.id"
+                  :class="[
+                    'px-4 py-2 rounded-full text-sm font-medium transition-all',
+                    modalPartnerStaffId === staff.id
+                      ? 'bg-purple text-white shadow-soft'
+                      : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
+                  ]"
+                >
+                  {{ staff.full_name }}
+                </button>
+              </div>
+
+              <!-- More than 6: horizontal scroll -->
+              <div v-else class="-mx-6 px-6">
+                <div class="flex gap-2 overflow-x-auto pb-2 -mx-6 px-6 scrollbar-hide">
+                  <button
+                    v-for="staff in partnerStaffList"
+                    :key="staff.id"
+                    @click="modalPartnerStaffId = modalPartnerStaffId === staff.id ? '' : staff.id"
+                    :class="[
+                      'px-4 py-2 rounded-full text-sm font-medium transition-all whitespace-nowrap flex-shrink-0',
+                      modalPartnerStaffId === staff.id
+                        ? 'bg-purple text-white shadow-soft'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
+                    ]"
+                  >
+                    {{ staff.full_name }}
+                  </button>
+                </div>
+                <p class="text-[10px] text-gray-300 mt-1">Swipe for more</p>
+              </div>
+            </div>
 
             <!-- Counter -->
             <div class="flex items-center justify-center gap-4 mb-4">

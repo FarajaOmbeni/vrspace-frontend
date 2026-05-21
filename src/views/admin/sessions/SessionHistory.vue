@@ -82,6 +82,7 @@ onMounted(loadSessions)
         <div class="min-w-0">
           <p class="text-sm font-medium text-gray-900">{{ s.machines?.name }}</p>
           <p class="text-xs text-gray-500">by {{ s.profiles?.full_name }}</p>
+          <p v-if="s.partner_staff?.full_name" class="text-xs text-blue-400">via {{ s.partner_staff.full_name }}</p>
           <p class="text-xs text-gray-400">{{ s.session_count }} x {{ formatPrice(s.price_per_session) }} = {{ formatPrice(s.total_amount) }} KES</p>
         </div>
         <span class="text-xs text-gray-400 flex-shrink-0">{{ formatTime(s.created_at) }}</span>
@@ -97,6 +98,7 @@ onMounted(loadSessions)
             <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">Logged By</th>
             <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">Sessions</th>
             <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">Amount</th>
+            <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">Served By</th>
             <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">Time</th>
           </tr>
         </thead>
@@ -106,6 +108,7 @@ onMounted(loadSessions)
             <td class="px-6 py-4 text-sm text-gray-500">{{ s.profiles?.full_name }}</td>
             <td class="px-6 py-4 text-sm text-gray-900">{{ s.session_count }}</td>
             <td class="px-6 py-4 text-sm font-semibold text-purple">{{ formatPrice(s.total_amount) }} KES</td>
+            <td class="px-6 py-4 text-sm text-blue-500">{{ s.partner_staff?.full_name || '—' }}</td>
             <td class="px-6 py-4 text-sm text-gray-400">{{ formatTime(s.created_at) }}</td>
           </tr>
         </tbody>

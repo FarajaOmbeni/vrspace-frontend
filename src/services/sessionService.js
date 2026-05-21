@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase'
 
-export async function logSession({ employeeId, machineId, sessionCount, pricePerSession }) {
+export async function logSession({ employeeId, machineId, sessionCount, pricePerSession, partnerStaffId }) {
   const { data, error } = await supabase
     .from('sessions')
     .insert({
@@ -8,6 +8,7 @@ export async function logSession({ employeeId, machineId, sessionCount, pricePer
       machine_id: machineId,
       session_count: sessionCount,
       price_per_session: pricePerSession,
+      partner_staff_id: partnerStaffId || null,
     })
     .select('*, machines:machine_id(name)')
     .single()
@@ -21,7 +22,7 @@ export async function getTodaySessions(employeeId) {
 
   let query = supabase
     .from('sessions')
-    .select('*, machines:machine_id(name, image_url), profiles:employee_id(full_name)')
+    .select('*, machines:machine_id(name, image_url), profiles:employee_id(full_name), partner_staff:partner_staff_id(full_name)')
     .eq('date', today)
     .order('created_at', { ascending: false })
 
@@ -33,7 +34,7 @@ export async function getTodaySessions(employeeId) {
 export async function getSessionsByDate(date) {
   const { data, error } = await supabase
     .from('sessions')
-    .select('*, machines:machine_id(name), profiles:employee_id(full_name)')
+    .select('*, machines:machine_id(name), profiles:employee_id(full_name), partner_staff:partner_staff_id(full_name)')
     .eq('date', date)
     .order('created_at', { ascending: false })
 

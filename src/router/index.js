@@ -151,6 +151,18 @@ const router = createRouter({
           meta: { requiresAdmin: true }
         },
         {
+          path: 'partner-staff',
+          name: 'AdminPartnerStaff',
+          component: () => import('@/views/admin/partner-staff/PartnerStaffList.vue'),
+          meta: { requiresAdmin: true }
+        },
+        {
+          path: 'partner-staff/report',
+          name: 'AdminPartnerStaffReport',
+          component: () => import('@/views/admin/partner-staff/PartnerStaffReport.vue'),
+          meta: { requiresAdmin: true }
+        },
+        {
           path: 'settings',
           name: 'AdminSettings',
           component: () => import('@/views/admin/Settings.vue'),

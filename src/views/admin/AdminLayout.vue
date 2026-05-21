@@ -29,6 +29,8 @@ const adminMenuItems = computed(() => [
   { label: 'Expense Templates', to: '/admin/finance/templates' },
   { label: 'Machines', to: '/admin/machines' },
   { label: 'Employees', to: '/admin/employees' },
+  { label: 'Partner Staff', to: '/admin/partner-staff' },
+  { label: 'Partner Staff Report', to: '/admin/partner-staff/report' },
   { label: 'Settings', to: '/admin/settings' },
 ])
 
