@@ -175,6 +175,12 @@ const router = createRouter({
           meta: { requiresAdmin: true }
         },
         {
+          path: 'finance/report',
+          name: 'AdminFinanceReport',
+          component: () => import('@/views/admin/finance/FinanceReport.vue'),
+          meta: { requiresAdmin: true }
+        },
+        {
           path: 'finance/templates',
           name: 'AdminExpenseTemplates',
           component: () => import('@/views/admin/finance/ExpenseTemplates.vue'),

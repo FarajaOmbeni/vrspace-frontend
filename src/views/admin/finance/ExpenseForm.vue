@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { createOneOffExpense, updateExpense, uploadReceipt } from '@/services/financeService'
+import { createOneOffExpense, createWriteOffExpense, updateExpense, uploadReceipt } from '@/services/financeService'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'vue-sonner'
 
@@ -23,6 +23,8 @@ const loadingData = ref(false)
 
 // Month from query param or current month
 const month = computed(() => route.query.month || new Date().toISOString().slice(0, 7) + '-01')
+const expenseType = computed(() => route.query.type === 'write_off' ? 'write_off' : 'one_off')
+const isWriteOff = computed(() => expenseType.value === 'write_off')
 
 function handleReceiptSelect(event) {
   const file = event.target.files[0]
@@ -78,7 +80,8 @@ async function handleSubmit() {
       await updateExpense(route.params.id, form.value)
       toast.success('Expense updated')
     } else {
-      const expense = await createOneOffExpense({
+      const createFn = isWriteOff.value ? createWriteOffExpense : createOneOffExpense
+      const expense = await createFn({
         month: month.value,
         description: form.value.description,
         amount: form.value.amount,
@@ -108,7 +111,7 @@ onMounted(() => {
       <button @click="router.back()" class="text-gray-400 hover:text-gray-600 transition-colors p-1">
         <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M15 19l-7-7 7-7"/></svg>
       </button>
-      <h1 class="text-2xl font-header font-bold text-gray-900">{{ isEdit ? 'Edit Expense' : 'Add Expense' }}</h1>
+      <h1 class="text-2xl font-header font-bold text-gray-900">{{ isEdit ? 'Edit' : 'Add' }} {{ isWriteOff ? 'Write-off' : 'Expense' }}</h1>
     </div>
 
     <div v-if="loadingData" class="flex justify-center py-12">
@@ -162,7 +165,7 @@ onMounted(() => {
       <!-- Actions -->
       <div class="flex flex-col sm:flex-row gap-3 pt-2">
         <button type="submit" :disabled="loading" class="flex-1 bg-purple text-white font-semibold py-3 rounded-xl text-base hover:bg-purple-700 transition-colors disabled:opacity-50">
-          {{ loading ? 'Saving...' : (isEdit ? 'Save Changes' : 'Add Expense') }}
+          {{ loading ? 'Saving...' : (isEdit ? 'Save Changes' : isWriteOff ? 'Add Write-off' : 'Add Expense') }}
         </button>
         <button type="button" @click="router.back()" class="flex-1 bg-gray-100 text-gray-700 font-semibold py-3 rounded-xl text-base hover:bg-gray-200 transition-colors">
           Cancel

@@ -38,8 +38,11 @@ const isClosed = computed(() => monthStatus.value?.is_closed)
 const salaryExpenses = computed(() => expenses.value.filter((e) => e.type === 'salary'))
 const recurringExpenses = computed(() => expenses.value.filter((e) => e.type === 'recurring'))
 const oneOffExpenses = computed(() => expenses.value.filter((e) => e.type === 'one_off'))
+const writeOffExpenses = computed(() => expenses.value.filter((e) => e.type === 'write_off'))
 
-const totalExpenses = computed(() => expenses.value.reduce((a, e) => a + Number(e.amount), 0))
+const operationalExpenses = computed(() => expenses.value.filter((e) => e.type !== 'write_off'))
+const totalExpenses = computed(() => operationalExpenses.value.reduce((a, e) => a + Number(e.amount), 0))
+const totalWriteOffs = computed(() => writeOffExpenses.value.reduce((a, e) => a + Number(e.amount), 0))
 const totalAdditionalIncome = computed(() => income.value.reduce((a, i) => a + Number(i.amount), 0))
 const totalIncome = computed(() => vrRevenue.value + totalAdditionalIncome.value)
 const profitLoss = computed(() => totalIncome.value - totalExpenses.value)
@@ -380,8 +383,62 @@ onMounted(loadData)
           </div>
         </div>
 
-        <div v-if="expenses.length === 0" class="bg-white rounded-xl shadow-soft p-4 text-center text-sm text-gray-400">
+        <div v-if="operationalExpenses.length === 0" class="bg-white rounded-xl shadow-soft p-4 text-center text-sm text-gray-400">
           No expenses recorded
+        </div>
+      </div>
+
+      <!-- WRITE-OFFS SECTION -->
+      <div class="mb-6">
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <h2 class="text-lg font-header font-bold text-gray-900">Write-offs</h2>
+            <p class="text-xs text-gray-400">Tax-deductible expenses (not included in P&L above)</p>
+          </div>
+          <button
+            v-if="!isClosed"
+            @click="router.push({ path: '/admin/finance/expense/new', query: { month: currentMonth, type: 'write_off' } })"
+            class="text-sm text-purple font-medium hover:underline"
+          >
+            + Add Write-off
+          </button>
+        </div>
+
+        <div v-if="writeOffExpenses.length > 0">
+          <!-- Write-off total -->
+          <div class="bg-amber-50 rounded-xl p-3 mb-3 flex items-center justify-between">
+            <p class="text-sm font-medium text-amber-700">Total Write-offs</p>
+            <p class="text-sm font-bold text-amber-700">{{ formatPrice(totalWriteOffs) }} KES</p>
+          </div>
+
+          <div class="bg-white rounded-xl shadow-soft overflow-hidden">
+            <div
+              v-for="exp in writeOffExpenses"
+              :key="exp.id"
+              class="flex items-center justify-between px-4 py-3 border-b border-gray-100 last:border-0"
+            >
+              <div class="flex items-center gap-3 min-w-0 flex-1">
+                <div v-if="exp.receipt_url" class="w-10 h-10 rounded-lg bg-gray-100 overflow-hidden flex-shrink-0">
+                  <a :href="exp.receipt_url" target="_blank"><img :src="exp.receipt_url" class="w-full h-full object-cover" /></a>
+                </div>
+                <p class="text-sm text-gray-900 truncate">{{ exp.description }}</p>
+              </div>
+              <div class="flex items-center gap-3 flex-shrink-0">
+                <p class="text-sm font-semibold text-amber-700">{{ formatPrice(exp.amount) }} KES</p>
+                <template v-if="!isClosed">
+                  <button
+                    @click="router.push({ path: `/admin/finance/expense/${exp.id}/edit`, query: { month: currentMonth, type: 'write_off' } })"
+                    class="text-xs text-purple hover:underline"
+                  >Edit</button>
+                  <button @click="handleDeleteExpense(exp.id)" class="text-xs text-red-500 hover:underline">Del</button>
+                </template>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div v-else class="bg-white rounded-xl shadow-soft p-4 text-center text-sm text-gray-400">
+          No write-offs recorded
         </div>
       </div>
 

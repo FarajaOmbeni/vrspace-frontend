@@ -154,6 +154,17 @@ export async function createOneOffExpense({ month, description, amount }) {
   return data
 }
 
+export async function createWriteOffExpense({ month, description, amount }) {
+  const { data, error } = await supabase
+    .from('monthly_expenses')
+    .insert({ month, type: 'write_off', description, amount })
+    .select()
+    .single()
+
+  if (error) throw error
+  return data
+}
+
 export async function updateExpense(id, updates) {
   const { data, error } = await supabase
     .from('monthly_expenses')
@@ -235,6 +246,117 @@ export async function deleteAdditionalIncome(id) {
     .eq('id', id)
 
   if (error) throw error
+}
+
+// ── Finance Report ──
+
+export async function getFinanceReport({ startMonth, endMonth }) {
+  const [sy, sm] = startMonth.split('-').map(Number)
+  const [ey, em] = endMonth.split('-').map(Number)
+  const firstDay = startMonth
+  const lastDay = localDateString(new Date(ey, em, 0))
+
+  const [
+    { data: salesRows, error: salesErr },
+    { data: expRows, error: expErr },
+    { data: incRows, error: incErr },
+  ] = await Promise.all([
+    supabase
+      .from('daily_sales')
+      .select('date, our_share, partner_reported_revenue')
+      .gte('date', firstDay)
+      .lte('date', lastDay),
+    supabase
+      .from('monthly_expenses')
+      .select('*, profiles:profile_id(full_name)')
+      .gte('month', startMonth)
+      .lte('month', endMonth)
+      .order('month')
+      .order('type')
+      .order('description'),
+    supabase
+      .from('additional_income')
+      .select('*')
+      .gte('month', startMonth)
+      .lte('month', endMonth)
+      .order('month'),
+  ])
+
+  if (salesErr) throw salesErr
+  if (expErr) throw expErr
+  if (incErr) throw incErr
+
+  // Build month-by-month map
+  const months = []
+  let d = new Date(sy, sm - 1, 1)
+  const end = new Date(ey, em - 1, 1)
+  while (d <= end) {
+    months.push(formatMonthKey(d.getFullYear(), d.getMonth()))
+    d = new Date(d.getFullYear(), d.getMonth() + 1, 1)
+  }
+
+  // VR revenue per month
+  const vrByMonth = {}
+  for (const row of salesRows || []) {
+    const m = row.date.slice(0, 7) + '-01'
+    vrByMonth[m] = (vrByMonth[m] || 0) + vrOurShareForFinance(row)
+  }
+
+  // Additional income per month
+  const incByMonth = {}
+  for (const row of incRows || []) {
+    incByMonth[row.month] = (incByMonth[row.month] || 0) + Number(row.amount)
+  }
+
+  // Expenses per month (excluding write-offs for P&L)
+  const expByMonth = {}
+  const woByMonth = {}
+  for (const row of expRows || []) {
+    if (row.type === 'write_off') {
+      woByMonth[row.month] = (woByMonth[row.month] || 0) + Number(row.amount)
+    } else {
+      expByMonth[row.month] = (expByMonth[row.month] || 0) + Number(row.amount)
+    }
+  }
+
+  const monthlyBreakdown = months.map((m) => {
+    const vr = vrByMonth[m] || 0
+    const addInc = incByMonth[m] || 0
+    const income = vr + addInc
+    const expenses = expByMonth[m] || 0
+    const writeOffs = woByMonth[m] || 0
+    return { month: m, income, expenses, writeOffs, profit: income - expenses }
+  })
+
+  const totals = monthlyBreakdown.reduce(
+    (acc, m) => ({
+      income: acc.income + m.income,
+      expenses: acc.expenses + m.expenses,
+      writeOffs: acc.writeOffs + m.writeOffs,
+      profit: acc.profit + m.profit,
+    }),
+    { income: 0, expenses: 0, writeOffs: 0, profit: 0 }
+  )
+
+  // Build daily VR revenue items
+  const vrDailyItems = (salesRows || []).map((row) => ({
+    date: row.date,
+    month: row.date.slice(0, 7) + '-01',
+    amount: vrOurShareForFinance(row),
+  }))
+
+  return {
+    monthlyBreakdown,
+    totals,
+    expenses: expRows || [],
+    incomeItems: incRows || [],
+    vrByMonth,
+    vrDailyItems,
+  }
+}
+
+function formatMonthKey(year, monthIndex) {
+  return `${year}-${String(monthIndex + 1).padStart(2, '0')}-01`
 }
 
 // ── Monthly Close ──
