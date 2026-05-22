@@ -84,6 +84,10 @@ function decrementCount() {
 
 async function submitModal() {
   if (!modalMachine.value || modalCount.value < 1) return
+  if (partnerStaffList.value.length > 0 && !modalPartnerStaffId.value) {
+    toast.error('Select who brought the client')
+    return
+  }
 
   modalActing.value = true
   try {
@@ -356,7 +360,7 @@ onMounted(loadData)
               </button>
               <button
                 @click="submitModal"
-                :disabled="modalActing || modalCount < 1"
+                :disabled="modalActing || modalCount < 1 || (partnerStaffList.length > 0 && !modalPartnerStaffId)"
                 class="flex-1 bg-purple text-white font-semibold py-3 rounded-xl text-sm hover:bg-purple-700 transition-colors disabled:opacity-50"
               >
                 {{ modalActing ? 'Logging...' : 'Log' }}
