@@ -56,30 +56,43 @@ export async function togglePartnerStaffActive(id, isActive) {
 export async function getPartnerStaffReport({ startDate, endDate }) {
   const { data, error } = await supabase
     .from('sessions')
-    .select('partner_staff_id, session_count, total_amount, partner_staff:partner_staff_id(full_name)')
+    .select('partner_staff_id, session_count, total_amount, partner_staff:partner_staff_id(full_name), machines:machine_id(name)')
     .not('partner_staff_id', 'is', null)
     .gte('date', startDate)
     .lte('date', endDate)
 
   if (error) throw error
 
-  // Aggregate by partner staff
+  // Aggregate by partner staff, then by game
   const map = {}
   for (const row of data) {
     const id = row.partner_staff_id
+    const game = row.machines?.name || 'Unknown'
     if (!map[id]) {
       map[id] = {
         id,
         full_name: row.partner_staff?.full_name || 'Unknown',
-        total_clients: 0,
         total_sessions: 0,
         total_revenue: 0,
+        games: {},
       }
     }
-    map[id].total_clients++
     map[id].total_sessions += row.session_count
     map[id].total_revenue += Number(row.total_amount)
+
+    if (!map[id].games[game]) {
+      map[id].games[game] = { sessions: 0, revenue: 0 }
+    }
+    map[id].games[game].sessions += row.session_count
+    map[id].games[game].revenue += Number(row.total_amount)
   }
 
-  return Object.values(map).sort((a, b) => b.total_revenue - a.total_revenue)
+  return Object.values(map)
+    .map((staff) => ({
+      ...staff,
+      games: Object.entries(staff.games)
+        .map(([name, data]) => ({ name, ...data }))
+        .sort((a, b) => b.sessions - a.sessions),
+    }))
+    .sort((a, b) => b.total_revenue - a.total_revenue)
 }

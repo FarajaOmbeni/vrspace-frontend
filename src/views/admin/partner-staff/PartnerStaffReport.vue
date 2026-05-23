@@ -16,7 +16,6 @@ function formatPrice(amount) {
   return Number(amount).toLocaleString('en-KE')
 }
 
-const totalClients = () => report.value.reduce((a, r) => a + r.total_clients, 0)
 const totalSessions = () => report.value.reduce((a, r) => a + r.total_sessions, 0)
 const totalRevenue = () => report.value.reduce((a, r) => a + r.total_revenue, 0)
 
@@ -72,12 +71,8 @@ onMounted(loadReport)
     </div>
 
     <!-- Totals -->
-    <div class="bg-purple rounded-xl p-4 mb-4 text-white grid grid-cols-3 gap-4">
+    <div class="bg-purple rounded-xl p-4 mb-4 text-white flex items-center justify-between">
       <div>
-        <p class="text-sm text-purple-200">Entries</p>
-        <p class="text-xl font-bold">{{ totalClients() }}</p>
-      </div>
-      <div class="text-center">
         <p class="text-sm text-purple-200">Sessions</p>
         <p class="text-xl font-bold">{{ totalSessions() }}</p>
       </div>
@@ -106,49 +101,60 @@ onMounted(loadReport)
           :key="r.id"
           class="bg-white rounded-xl shadow-soft p-4"
         >
-          <div class="flex items-center justify-between mb-2">
-            <div class="flex items-center gap-2">
-              <span class="w-7 h-7 rounded-full bg-purple-50 text-purple text-xs font-bold flex items-center justify-center">{{ i + 1 }}</span>
-              <p class="font-semibold text-gray-900">{{ r.full_name }}</p>
+          <div class="flex items-center gap-2 mb-3">
+            <span class="w-7 h-7 rounded-full bg-purple-50 text-purple text-xs font-bold flex items-center justify-center">{{ i + 1 }}</span>
+            <p class="font-semibold text-gray-900">{{ r.full_name }}</p>
+            <div class="ml-auto text-right">
+              <p class="text-sm font-bold text-purple">{{ formatPrice(r.total_revenue) }} KES</p>
+              <p class="text-xs text-gray-400">{{ r.total_sessions }} sessions</p>
             </div>
           </div>
-          <div class="grid grid-cols-3 gap-2 text-center">
-            <div>
-              <p class="text-xs text-gray-400">Entries</p>
-              <p class="text-sm font-bold text-gray-900">{{ r.total_clients }}</p>
-            </div>
-            <div>
-              <p class="text-xs text-gray-400">Sessions</p>
-              <p class="text-sm font-bold text-gray-900">{{ r.total_sessions }}</p>
-            </div>
-            <div>
-              <p class="text-xs text-gray-400">Revenue</p>
-              <p class="text-sm font-bold text-purple">{{ formatPrice(r.total_revenue) }}</p>
+          <!-- Games breakdown -->
+          <div class="space-y-1">
+            <div
+              v-for="game in r.games"
+              :key="game.name"
+              class="flex items-center justify-between px-3 py-1.5 bg-gray-50 rounded-lg"
+            >
+              <p class="text-xs font-medium text-gray-700">{{ game.name }}</p>
+              <div class="flex items-center gap-3">
+                <span class="text-xs text-gray-400">{{ game.sessions }} sess</span>
+                <span class="text-xs font-semibold text-gray-900">{{ formatPrice(game.revenue) }}</span>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Desktop: table -->
+      <!-- Desktop: table with expandable game rows -->
       <div class="hidden md:block bg-white rounded-xl shadow-soft overflow-hidden">
         <table class="w-full">
           <thead class="bg-gray-50 border-b border-gray-200">
             <tr>
               <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">#</th>
               <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">Staff Name</th>
-              <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">Entries</th>
+              <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">Game</th>
               <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">Sessions</th>
               <th class="text-left text-xs font-semibold text-gray-500 uppercase tracking-wider px-6 py-3">Revenue</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-100">
-            <tr v-for="(r, i) in report" :key="r.id" class="hover:bg-gray-50">
-              <td class="px-6 py-4 text-sm text-gray-400">{{ i + 1 }}</td>
-              <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ r.full_name }}</td>
-              <td class="px-6 py-4 text-sm text-gray-900">{{ r.total_clients }}</td>
-              <td class="px-6 py-4 text-sm text-gray-900">{{ r.total_sessions }}</td>
-              <td class="px-6 py-4 text-sm font-semibold text-purple">{{ formatPrice(r.total_revenue) }} KES</td>
-            </tr>
+            <template v-for="(r, i) in report" :key="r.id">
+              <!-- Staff total row -->
+              <tr class="bg-gray-50/50">
+                <td class="px-6 py-3 text-sm text-gray-400" :rowspan="r.games.length + 1">{{ i + 1 }}</td>
+                <td class="px-6 py-3 text-sm font-bold text-gray-900" :rowspan="r.games.length + 1">{{ r.full_name }}</td>
+                <td class="px-6 py-3 text-xs font-semibold text-gray-400 uppercase">All Games</td>
+                <td class="px-6 py-3 text-sm font-bold text-gray-900">{{ r.total_sessions }}</td>
+                <td class="px-6 py-3 text-sm font-bold text-purple">{{ formatPrice(r.total_revenue) }} KES</td>
+              </tr>
+              <!-- Per-game rows -->
+              <tr v-for="game in r.games" :key="game.name" class="hover:bg-gray-50">
+                <td class="px-6 py-2 text-sm text-gray-600 pl-10">{{ game.name }}</td>
+                <td class="px-6 py-2 text-sm text-gray-600">{{ game.sessions }}</td>
+                <td class="px-6 py-2 text-sm text-gray-600">{{ formatPrice(game.revenue) }} KES</td>
+              </tr>
+            </template>
           </tbody>
         </table>
       </div>
