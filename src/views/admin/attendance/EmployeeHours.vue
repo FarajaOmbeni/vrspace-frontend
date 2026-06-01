@@ -30,14 +30,24 @@ function getDateRange() {
   } else if (filterPeriod.value === 'month') {
     start = new Date(now.getFullYear(), now.getMonth(), 1)
     end = now
+  } else if (filterPeriod.value === 'last-month') {
+    start = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+    end = new Date(now.getFullYear(), now.getMonth(), 0)
   } else {
     start = filterStartDate.value ? new Date(filterStartDate.value) : null
     end = filterEndDate.value ? new Date(filterEndDate.value) : null
   }
 
+  function toDateStr(d) {
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
+  }
+
   return {
-    startDate: start ? start.toISOString().split('T')[0] : undefined,
-    endDate: end ? end.toISOString().split('T')[0] : undefined,
+    startDate: start ? toDateStr(start) : undefined,
+    endDate: end ? toDateStr(end) : undefined,
   }
 }
 
@@ -118,7 +128,7 @@ onMounted(loadData)
         <label class="block text-xs font-medium text-gray-500 mb-1">Period</label>
         <div class="flex gap-1">
           <button
-            v-for="p in ['week', 'month', 'custom']"
+            v-for="p in ['week', 'month', 'last-month', 'custom']"
             :key="p"
             @click="filterPeriod = p; if (p !== 'custom') applyFilters()"
             :class="[
@@ -128,7 +138,7 @@ onMounted(loadData)
                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200',
             ]"
           >
-            {{ p === 'week' ? 'This Week' : p === 'month' ? 'This Month' : 'Custom' }}
+            {{ p === 'week' ? 'This Week' : p === 'month' ? 'This Month' : p === 'last-month' ? 'Last Month' : 'Custom' }}
           </button>
         </div>
       </div>
