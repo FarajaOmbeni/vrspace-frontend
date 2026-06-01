@@ -48,13 +48,17 @@ export async function listDailySales({ startDate, endDate } = {}) {
   return data
 }
 
-export async function getDiscrepancies({ startDate, endDate } = {}) {
+export async function getDiscrepancies({ startDate, endDate, showResolved = false } = {}) {
   let query = supabase
     .from('daily_sales')
-    .select('*, profiles:logged_by(full_name)')
-    .not('discrepancy', 'is', null)
-    .neq('discrepancy', 0)
+    .select('*, profiles:logged_by(full_name), resolver:resolved_by(full_name)')
     .order('date', { ascending: false })
+
+  query = query.not('discrepancy', 'is', null).neq('discrepancy', 0)
+
+  if (!showResolved) {
+    query = query.eq('discrepancy_resolved', false)
+  }
 
   if (startDate) {
     query = query.gte('date', startDate)
@@ -64,6 +68,24 @@ export async function getDiscrepancies({ startDate, endDate } = {}) {
   }
 
   const { data, error } = await query
+  if (error) throw error
+  return data
+}
+
+export async function resolveDiscrepancy(id, { resolvedBy, resolvedWith, notes }) {
+  const { data, error } = await supabase
+    .from('daily_sales')
+    .update({
+      discrepancy_resolved: true,
+      resolved_at: new Date().toISOString(),
+      resolved_by: resolvedBy,
+      resolved_with: resolvedWith,
+      notes: notes || null,
+    })
+    .eq('id', id)
+    .select()
+    .single()
+
   if (error) throw error
   return data
 }
