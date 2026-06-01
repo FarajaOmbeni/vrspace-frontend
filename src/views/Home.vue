@@ -227,118 +227,59 @@
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
       <!-- Service Cards -->
-      <div class="bg-blue/5 rounded-xl p-6 shadow-md">
-        <h3 class="text-xl font-bold text-blue mb-3">On-Demand VR Gaming</h3>
-        <p class="mb-4">Drop in for individual or group VR gaming sessions with our full range of equipment.</p>
+      <div v-for="(service, index) in services" :key="index" class="bg-blue/5 rounded-xl p-6 shadow-md">
+        <h3 class="text-xl font-bold text-blue mb-3">{{ service.title }}</h3>
+        <p class="mb-4">{{ service.summary }}</p>
         <ul class="mb-4 space-y-2">
-          <li class="flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-pink" viewBox="0 0 20 20" fill="currentColor">
+          <li v-for="(point, i) in service.highlights" :key="i" class="flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-pink flex-shrink-0" viewBox="0 0 20 20" fill="currentColor">
               <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
             </svg>
-            <span>No booking required</span>
-          </li>
-          <li class="flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-pink" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-            </svg>
-            <span>Individual or group options</span>
-          </li>
-          <li class="flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-pink" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-            </svg>
-            <span>Flexible session durations</span>
+            <span>{{ point }}</span>
           </li>
         </ul>
-        <RouterLink to="/contact" class="inline-block text-blue font-bold hover:text-purple transition-colors">
+        <button @click="activeModal = index" class="inline-block text-blue font-bold hover:text-purple transition-colors">
           Learn More →
-        </RouterLink>
-      </div>
-
-      <div class="bg-blue/5 rounded-xl p-6 shadow-md">
-        <h3 class="text-xl font-bold text-blue mb-3">Educational VR</h3>
-        <p class="mb-4">Interactive learning programs for schools and educational groups using immersive VR.</p>
-        <ul class="mb-4 space-y-2">
-          <li class="flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-pink" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-            </svg>
-            <span>School trips & field days</span>
-          </li>
-          <li class="flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-pink" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-            </svg>
-            <span>Interactive learning</span>
-          </li>
-          <li class="flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-pink" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-            </svg>
-            <span>Group discounts available</span>
-          </li>
-        </ul>
-        <RouterLink to="/contact" class="inline-block text-blue font-bold hover:text-purple transition-colors">
-          Learn More →
-        </RouterLink>
-      </div>
-
-      <div class="bg-blue/5 rounded-xl p-6 shadow-md">
-        <h3 class="text-xl font-bold text-blue mb-3">Birthday Parties</h3>
-        <p class="mb-4">Create unforgettable birthday celebrations with customized VR packages for all ages.</p>
-        <ul class="mb-4 space-y-2">
-          <li class="flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-pink" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-            </svg>
-            <span>Customized VR packages</span>
-          </li>
-          <li class="flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-pink" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-            </svg>
-            <span>Kids & adults packages</span>
-          </li>
-          <li class="flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-pink" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-            </svg>
-            <span>Memorable experiences</span>
-          </li>
-        </ul>
-        <RouterLink to="/contact" class="inline-block text-blue font-bold hover:text-purple transition-colors">
-          Learn More →
-        </RouterLink>
-      </div>
-
-      <div class="bg-blue/5 rounded-xl p-6 shadow-md">
-        <h3 class="text-xl font-bold text-blue mb-3">Corporate Events</h3>
-        <p class="mb-4">Team-building experiences and corporate entertainment for your next company event.</p>
-        <ul class="mb-4 space-y-2">
-          <li class="flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-pink" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-            </svg>
-            <span>Team-building activities</span>
-          </li>
-          <li class="flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-pink" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-            </svg>
-            <span>Corporate packages</span>
-          </li>
-          <li class="flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-pink" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
-            </svg>
-            <span>Large group options</span>
-          </li>
-        </ul>
-        <RouterLink to="/contact" class="inline-block text-blue font-bold hover:text-purple transition-colors">
-          Learn More →
-        </RouterLink>
+        </button>
       </div>
     </div>
+
+    <!-- Service Modal -->
+    <Teleport to="body">
+      <div v-if="activeModal !== null" class="fixed inset-0 z-50 flex items-center justify-center p-4" @click.self="activeModal = null">
+        <div class="fixed inset-0 bg-black/50" @click="activeModal = null"></div>
+        <div class="relative bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto z-10">
+          <button @click="activeModal = null" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-2xl font-bold leading-none">&times;</button>
+          <div class="p-6 sm:p-8">
+            <h3 class="text-2xl font-bold text-blue mb-4 font-header">{{ services[activeModal].title }}</h3>
+            <p class="text-gray-700 mb-6 leading-relaxed">{{ services[activeModal].description }}</p>
+
+            <h4 class="font-bold text-lg text-blue mb-3">What we provide</h4>
+            <ul class="mb-6 space-y-2">
+              <li v-for="(item, i) in services[activeModal].details" :key="i" class="flex items-start gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-pink flex-shrink-0 mt-0.5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+                </svg>
+                <span>{{ item }}</span>
+              </li>
+            </ul>
+
+            <h4 class="font-bold text-lg text-blue mb-3">Available equipment</h4>
+            <div class="flex flex-wrap gap-2 mb-6">
+              <span v-for="(eq, i) in services[activeModal].equipment" :key="i" class="bg-blue/10 text-blue text-sm font-medium py-1 px-3 rounded-full">{{ eq }}</span>
+            </div>
+
+            <div class="bg-pink/10 rounded-xl p-4 mb-6">
+              <p class="text-pink font-bold text-center">Contact us for pricing — we'll tailor a package to your needs!</p>
+            </div>
+
+            <RouterLink to="/contact" @click="activeModal = null" class="block w-full py-3 bg-purple text-white text-center rounded-lg font-bold hover:opacity-90 transition-opacity">
+              Contact Us
+            </RouterLink>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </section>
 
   <!-- FAQ Section -->
@@ -417,6 +358,7 @@
 </template>
 
 <script setup>
+import { ref } from 'vue';
 import HomeOdd from '@/Shared/HomeOdd.vue';
 import HomeEven from '@/Shared/HomeEven.vue';
 import { RouterLink } from 'vue-router';
@@ -425,6 +367,69 @@ import { RouterLink } from 'vue-router';
 defineOptions({
   name: 'HomePage'
 });
+
+const activeModal = ref(null);
+
+const services = [
+  {
+    title: 'On-Demand VR Gaming',
+    summary: 'Drop in for individual or group VR gaming sessions with our full range of equipment.',
+    highlights: ['No booking required', 'Individual or group options', 'Flexible session durations'],
+    description: 'Walk in anytime and jump straight into the action. Whether you\'re solo or rolling in with friends, we have the perfect setup waiting for you. Our staff will get you geared up and gaming in minutes — no reservations needed.',
+    details: [
+      'Choose from HTC Vive VR, Egg Rollercoaster VR, GT Racing Simulator, Meta Quest VR, PlayStation 5, and Nintendo Switch',
+      'Staff-guided setup so you can focus on the fun',
+      'Multiple sessions available back-to-back',
+      'Suitable for all ages and experience levels',
+    ],
+    equipment: ['Meta Quest VR', 'GT Racing Simulator', 'Nintendo Switch', 'HTC Vive VR', 'PlayStation 5', 'Egg Rollercoaster VR'],
+  },
+  {
+    title: 'Educational VR',
+    summary: 'Interactive learning programs for schools and educational groups using immersive VR.',
+    highlights: ['School trips & field days', 'Interactive learning', 'Group discounts available'],
+    description: 'Bring the classroom to life with immersive virtual reality. We host school groups for educational trips that combine fun with learning — from exploring the solar system to walking through historical landmarks. Students stay engaged while absorbing knowledge in ways textbooks can\'t match.',
+    details: [
+      'Curated educational VR content across science, history, geography, and more',
+      'Hands-on Meta Quest VR experiences for interactive learning',
+      'GT Racing Simulator for physics and engineering concepts',
+      'Nintendo Switch for collaborative problem-solving games',
+      'Dedicated staff to guide students through each experience',
+      'Customizable programs to match your curriculum',
+    ],
+    equipment: ['Meta Quest VR', 'GT Racing Simulator', 'Nintendo Switch', 'HTC Vive VR'],
+  },
+  {
+    title: 'Birthday Parties',
+    summary: 'Create unforgettable birthday celebrations with customized VR packages for all ages.',
+    highlights: ['Customized VR packages', 'Kids & adults packages', 'Memorable experiences'],
+    description: 'Make their birthday one they\'ll never forget. We set up an action-packed party with a mix of VR and console gaming that keeps every guest entertained. From high-speed racing to multiplayer showdowns, there\'s something for everyone in the crew.',
+    details: [
+      'Dedicated party area with all equipment set up and ready',
+      'Mix of VR experiences and console gaming for variety',
+      'Meta Quest VR for immersive solo adventures',
+      'Nintendo Switch and PlayStation 5 for multiplayer fun',
+      'GT Racing Simulator for adrenaline-pumping competition',
+      'Party coordination by our team so you can relax and enjoy',
+    ],
+    equipment: ['Meta Quest VR', 'GT Racing Simulator', 'Nintendo Switch', 'PlayStation 5', 'HTC Vive VR'],
+  },
+  {
+    title: 'Corporate Events',
+    summary: 'Team-building experiences and corporate entertainment for your next company event.',
+    highlights: ['Team-building activities', 'Corporate packages', 'Large group options'],
+    description: 'Take your team offsite for an experience that actually brings people together. Our corporate packages combine competitive gaming, VR challenges, and collaborative play to break the ice and build stronger teams. We handle the setup — you bring the energy.',
+    details: [
+      'Team vs. team competitions on GT Racing Simulator',
+      'Collaborative VR challenges on Meta Quest VR',
+      'Multiplayer tournaments on Nintendo Switch and PlayStation 5',
+      'Flexible setups for groups of any size',
+      'On-site or off-site event options — we can bring the gear to you',
+      'Full event coordination and technical support',
+    ],
+    equipment: ['Meta Quest VR', 'GT Racing Simulator', 'Nintendo Switch', 'PlayStation 5', 'HTC Vive VR'],
+  },
+];
 
 // Images
 import htc from '@/assets/images/experiences/htc.jpg';
