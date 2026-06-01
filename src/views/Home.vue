@@ -282,6 +282,41 @@
     </Teleport>
   </section>
 
+  <!-- TikTok Section -->
+  <section class="container mx-auto px-4 sm:px-6 mb-16 md:mb-20">
+    <div class="text-center mb-12">
+      <p class="text-pink inline-block font-medium mb-2 py-1 px-4 rounded-full bg-pink/10">Follow Us</p>
+      <h2 class="text-3xl sm:text-4xl font-bold font-header text-blue mb-4">Catch Us on TikTok</h2>
+      <p class="text-lg max-w-3xl mx-auto">Check out the latest action from VR Space — new videos featured daily</p>
+    </div>
+
+    <div v-if="tiktokLoading" class="flex justify-center py-12">
+      <div class="tiktok-loader"></div>
+    </div>
+
+    <div v-else-if="tiktokPicks.length" class="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+      <div v-for="(videoId, i) in tiktokPicks" :key="i" class="flex justify-center">
+        <iframe
+          :src="`https://www.tiktok.com/embed/v2/${videoId}`"
+          style="width: 325px; height: 578px; border: none;"
+          allowfullscreen
+          allow="encrypted-media"
+        ></iframe>
+      </div>
+    </div>
+
+    <div v-else class="text-center py-12 text-gray-500">
+      <p>Videos loading... Follow us on TikTok in the meantime!</p>
+    </div>
+
+    <div class="text-center mt-8">
+      <a href="https://www.tiktok.com/@vrspaceke?_r=1&_t=ZS-96qAgLXH8Z5" target="_blank" rel="noopener noreferrer"
+        class="inline-block bg-black text-white font-bold py-3 px-8 rounded-full text-lg transition-all duration-300 hover:shadow-lg hover:opacity-90">
+        Follow @vrspaceke
+      </a>
+    </div>
+  </section>
+
   <!-- FAQ Section -->
   <section class="container mx-auto px-4 sm:px-6 mb-16 md:mb-20">
     <h2 class="text-3xl sm:text-4xl font-bold font-header text-blue mb-8 text-center">Frequently Asked Questions</h2>
@@ -358,10 +393,11 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 import HomeOdd from '@/Shared/HomeOdd.vue';
 import HomeEven from '@/Shared/HomeEven.vue';
 import { RouterLink } from 'vue-router';
+import { listTiktokVideos } from '@/services/tiktokService';
 
 // Component name definition
 defineOptions({
@@ -369,6 +405,45 @@ defineOptions({
 });
 
 const activeModal = ref(null);
+
+// --- TikTok ---
+const tiktokPicks = ref([]);
+const tiktokLoading = ref(true);
+
+function extractVideoId(url) {
+  const match = url.match(/\/video\/(\d+)/);
+  return match ? match[1] : null;
+}
+
+function getDailyPicks(items, count) {
+  const today = new Date();
+  const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+  const shuffled = [...items];
+  let s = seed;
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    s = (s * 9301 + 49297) % 233280;
+    const j = Math.floor((s / 233280) * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled.slice(0, count);
+}
+
+async function loadTiktokVideos() {
+  try {
+    const allVideos = await listTiktokVideos();
+    if (!allVideos.length) return;
+    const picks = getDailyPicks(allVideos, 3);
+    tiktokPicks.value = picks.map(extractVideoId).filter(Boolean);
+  } catch (e) {
+    console.error('Failed to load TikTok videos:', e);
+  } finally {
+    tiktokLoading.value = false;
+  }
+}
+
+onMounted(() => {
+  loadTiktokVideos();
+});
 
 const services = [
   {
@@ -476,5 +551,19 @@ import meta from '@/assets/images/experiences/meta.jpg';
   .hero {
     min-height: 90vh;
   }
+}
+
+.tiktok-loader {
+  border: 3px solid rgba(0, 0, 0, 0.1);
+  border-top: 3px solid #000;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  animation: tiktok-spin 0.8s linear infinite;
+}
+
+@keyframes tiktok-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 </style>
