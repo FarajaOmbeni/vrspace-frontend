@@ -2,8 +2,11 @@
 import { ref, onMounted, computed } from 'vue'
 import { toast } from 'vue-sonner'
 import { listTiktokVideosAdmin, addTiktokVideo, deleteTiktokVideo } from '@/services/tiktokService'
+import { useAuth } from '@/composables/useAuth'
 
 defineOptions({ name: 'TiktokVideos' })
+
+const { isAdmin } = useAuth()
 
 const videos = ref([])
 const loading = ref(true)
@@ -88,7 +91,7 @@ onMounted(loadVideos)
     </div>
 
     <!-- Add Video Form -->
-    <div class="bg-white rounded-xl shadow-soft p-4 mb-6">
+    <div v-if="isAdmin" class="bg-white rounded-xl shadow-soft p-4 mb-6">
       <form @submit.prevent="handleAdd" class="flex flex-col sm:flex-row gap-3">
         <input
           v-model="newUrl"
@@ -147,7 +150,7 @@ onMounted(loadVideos)
               </a>
             </td>
             <td class="px-4 py-3 text-gray-500 whitespace-nowrap">{{ formatDate(video.created_at) }}</td>
-            <td class="px-4 py-3 text-right">
+            <td v-if="isAdmin" class="px-4 py-3 text-right">
               <button
                 @click="handleDelete(video.id)"
                 :disabled="deletingId === video.id"

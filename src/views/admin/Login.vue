@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
 
 const router = useRouter()
-const { signIn, isAdmin } = useAuth()
+const { signIn, canViewAdmin } = useAuth()
 
 const email = ref('')
 const password = ref('')
@@ -20,7 +20,7 @@ async function handleLogin() {
     await signIn(email.value, password.value)
     // Wait briefly for profile to load
     await new Promise((r) => setTimeout(r, 300))
-    router.push(isAdmin.value ? '/admin/dashboard' : '/admin/clock')
+    router.push(canViewAdmin.value ? '/admin/dashboard' : '/admin/clock')
   } catch (e) {
     error.value = e.message || 'Invalid email or password'
   } finally {

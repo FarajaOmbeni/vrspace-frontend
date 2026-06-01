@@ -7,6 +7,8 @@ const loading = ref(true)
 
 const isAuthenticated = computed(() => !!user.value)
 const isAdmin = computed(() => profile.value?.role === 'admin')
+const isManager = computed(() => profile.value?.role === 'manager')
+const canViewAdmin = computed(() => isAdmin.value || isManager.value)
 
 async function fetchProfile(userId) {
   const { data, error } = await supabase
@@ -93,6 +95,8 @@ export function useAuth() {
     loading: readonly(loading),
     isAuthenticated,
     isAdmin,
+    isManager,
+    canViewAdmin,
     signIn,
     signOut,
     resetPasswordForEmail,

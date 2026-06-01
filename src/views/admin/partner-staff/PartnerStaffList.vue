@@ -1,9 +1,12 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { listPartnerStaff, createPartnerStaff, updatePartnerStaff, togglePartnerStaffActive } from '@/services/partnerStaffService'
+import { useAuth } from '@/composables/useAuth'
 import { toast } from 'vue-sonner'
 
 defineOptions({ name: 'PartnerStaffList' })
+
+const { isAdmin } = useAuth()
 
 const staff = ref([])
 const loading = ref(true)
@@ -95,6 +98,7 @@ onMounted(loadStaff)
         <p class="text-sm text-gray-500 mt-1">Company B's front-desk staff</p>
       </div>
       <button
+        v-if="isAdmin"
         @click="showAddModal = true"
         class="bg-purple text-white font-semibold px-5 py-2.5 rounded-xl text-sm hover:bg-purple-700 transition-colors w-full sm:w-auto"
       >
@@ -156,7 +160,7 @@ onMounted(loadStaff)
               {{ person.is_active ? 'Active' : 'Inactive' }}
             </span>
           </div>
-          <div class="ml-3 flex items-center gap-2">
+          <div v-if="isAdmin" class="ml-3 flex items-center gap-2">
             <button
               @click="openEdit(person)"
               class="text-gray-400 hover:text-purple transition-colors p-1"
@@ -206,7 +210,7 @@ onMounted(loadStaff)
                   {{ person.is_active ? 'Active' : 'Inactive' }}
                 </span>
               </td>
-              <td class="px-6 py-4 text-right space-x-3">
+              <td v-if="isAdmin" class="px-6 py-4 text-right space-x-3">
                 <button
                   @click="openEdit(person)"
                   class="text-sm font-medium text-purple hover:text-purple-700 transition-colors"

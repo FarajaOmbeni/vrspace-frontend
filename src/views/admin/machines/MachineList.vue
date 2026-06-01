@@ -2,11 +2,13 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { listMachines, toggleMachineActive } from '@/services/machineService'
+import { useAuth } from '@/composables/useAuth'
 import { toast } from 'vue-sonner'
 
 defineOptions({ name: 'MachineList' })
 
 const router = useRouter()
+const { isAdmin } = useAuth()
 const machines = ref([])
 const loading = ref(true)
 const filter = ref('all')
@@ -55,6 +57,7 @@ onMounted(loadMachines)
         <p class="text-sm text-gray-500 mt-1">{{ filteredMachines.length }} machines</p>
       </div>
       <button
+        v-if="isAdmin"
         @click="router.push('/admin/machines/new')"
         class="bg-purple text-white font-semibold px-5 py-2.5 rounded-xl text-sm hover:bg-purple-700 transition-colors w-full sm:w-auto"
       >
@@ -131,7 +134,7 @@ onMounted(loadMachines)
           <h3 class="font-semibold text-gray-900 text-sm mb-1">{{ machine.name }}</h3>
           <p class="text-purple font-bold">{{ formatPrice(machine.price_per_session) }} KES</p>
 
-          <div class="flex items-center justify-between mt-auto pt-2">
+          <div v-if="isAdmin" class="flex items-center justify-between mt-auto pt-2">
             <button
               @click="router.push(`/admin/machines/${machine.id}/edit`)"
               class="text-xs text-purple font-medium hover:underline"
@@ -193,7 +196,7 @@ onMounted(loadMachines)
                 {{ machine.is_active ? 'Active' : 'Inactive' }}
               </span>
             </td>
-            <td class="px-6 py-4 text-right space-x-3">
+            <td v-if="isAdmin" class="px-6 py-4 text-right space-x-3">
               <button
                 @click="router.push(`/admin/machines/${machine.id}/edit`)"
                 class="text-sm font-medium text-purple hover:text-purple-700 transition-colors"
@@ -220,6 +223,7 @@ onMounted(loadMachines)
 
     <!-- Mobile: FAB -->
     <button
+      v-if="isAdmin"
       @click="router.push('/admin/machines/new')"
       class="md:hidden fixed right-4 bottom-20 z-20 w-14 h-14 bg-purple text-white rounded-full shadow-strong flex items-center justify-center hover:bg-purple-700 transition-colors"
     >

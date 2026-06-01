@@ -1,9 +1,12 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { listExpenseTemplates, createExpenseTemplate, updateExpenseTemplate, toggleExpenseTemplateActive } from '@/services/financeService'
+import { useAuth } from '@/composables/useAuth'
 import { toast } from 'vue-sonner'
 
 defineOptions({ name: 'ExpenseTemplates' })
+
+const { isAdmin } = useAuth()
 
 const templates = ref([])
 const loading = ref(true)
@@ -84,6 +87,7 @@ onMounted(loadTemplates)
         <p class="text-sm text-gray-500 mt-1">Recurring expenses that auto-populate each month</p>
       </div>
       <button
+        v-if="isAdmin"
         @click="openAdd"
         class="bg-purple text-white font-semibold px-5 py-2.5 rounded-xl text-sm hover:bg-purple-700 transition-colors w-full sm:w-auto"
       >
@@ -157,7 +161,7 @@ onMounted(loadTemplates)
             {{ t.is_active ? 'Active' : 'Inactive' }}
           </span>
         </div>
-        <div class="flex items-center gap-2 ml-3">
+        <div v-if="isAdmin" class="flex items-center gap-2 ml-3">
           <button @click="openEdit(t)" class="text-sm text-purple font-medium hover:underline">Edit</button>
           <button
             @click="handleToggle(t)"
@@ -189,7 +193,7 @@ onMounted(loadTemplates)
                 {{ t.is_active ? 'Active' : 'Inactive' }}
               </span>
             </td>
-            <td class="px-6 py-4 text-right space-x-3">
+            <td v-if="isAdmin" class="px-6 py-4 text-right space-x-3">
               <button @click="openEdit(t)" class="text-sm font-medium text-purple hover:text-purple-700">Edit</button>
               <button
                 @click="handleToggle(t)"

@@ -5,14 +5,14 @@ import { useAuth } from '@/composables/useAuth'
 
 const route = useRoute()
 const router = useRouter()
-const { profile, isAdmin, signOut } = useAuth()
+const { profile, isAdmin, canViewAdmin, signOut } = useAuth()
 
 const showMoreMenu = ref(false)
 const signingOut = ref(false)
 
 const navItems = computed(() => {
   const items = [
-    { label: 'Dashboard', icon: 'dashboard', to: '/admin/dashboard', exact: true, show: isAdmin.value },
+    { label: 'Dashboard', icon: 'dashboard', to: '/admin/dashboard', exact: true, show: canViewAdmin.value },
     { label: 'Clock', icon: 'clock', to: '/admin/clock', exact: true, show: true },
     { label: 'Sessions', icon: 'play', to: '/admin/sessions', exact: false, show: true },
     { label: 'Sales', icon: 'dollar', to: '/admin/sales', exact: true, show: true },
@@ -95,7 +95,7 @@ async function handleSignOut() {
         </router-link>
 
         <!-- Admin section -->
-        <template v-if="isAdmin">
+        <template v-if="canViewAdmin">
           <div class="pt-4 pb-2 px-3">
             <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Admin</p>
           </div>
@@ -226,7 +226,7 @@ async function handleSignOut() {
 
         <!-- More tab (admin only) -->
         <button
-          v-if="isAdmin"
+          v-if="canViewAdmin"
           @click="showMoreMenu = !showMoreMenu"
           :class="[
             'flex flex-col items-center py-2 px-3 text-xs font-medium transition-colors min-w-0 flex-1',

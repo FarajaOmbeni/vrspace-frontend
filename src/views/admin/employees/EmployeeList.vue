@@ -2,11 +2,13 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { listEmployees, toggleEmployeeActive } from '@/services/employeeService'
+import { useAuth } from '@/composables/useAuth'
 import { toast } from 'vue-sonner'
 
 defineOptions({ name: 'EmployeeList' })
 
 const router = useRouter()
+const { isAdmin } = useAuth()
 const employees = ref([])
 const loading = ref(true)
 const filter = ref('all') // 'all', 'active', 'inactive'
@@ -51,6 +53,7 @@ onMounted(loadEmployees)
         <p class="text-sm text-gray-500 mt-1">{{ filteredEmployees.length }} employees</p>
       </div>
       <button
+        v-if="isAdmin"
         @click="router.push('/admin/employees/new')"
         class="bg-purple text-white font-semibold px-5 py-2.5 rounded-xl text-sm hover:bg-purple-700 transition-colors w-full sm:w-auto"
       >
@@ -108,6 +111,8 @@ onMounted(loadEmployees)
                 'inline-block px-2 py-0.5 rounded-full text-xs font-medium capitalize',
                 emp.role === 'admin'
                   ? 'bg-purple-50 text-purple'
+                  : emp.role === 'manager'
+                  ? 'bg-amber-50 text-amber-600'
                   : 'bg-blue-50 text-blue-600',
               ]"
             >
@@ -125,7 +130,7 @@ onMounted(loadEmployees)
             </span>
           </div>
         </div>
-        <div class="ml-3 flex items-center gap-2">
+        <div v-if="isAdmin" class="ml-3 flex items-center gap-2">
           <button
             @click="router.push(`/admin/employees/${emp.id}/edit`)"
             class="text-gray-400 hover:text-purple transition-colors p-1"
@@ -190,7 +195,7 @@ onMounted(loadEmployees)
                 {{ emp.is_active ? 'Active' : 'Inactive' }}
               </span>
             </td>
-            <td class="px-6 py-4 text-right space-x-3">
+            <td v-if="isAdmin" class="px-6 py-4 text-right space-x-3">
               <button
                 @click="router.push(`/admin/employees/${emp.id}/edit`)"
                 class="text-sm font-medium text-purple hover:text-purple-700 transition-colors"

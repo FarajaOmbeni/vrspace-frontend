@@ -6,7 +6,7 @@ import { toast } from 'vue-sonner'
 
 defineOptions({ name: 'DiscrepancyView' })
 
-const { user } = useAuth()
+const { user, isAdmin } = useAuth()
 const records = ref([])
 const loading = ref(true)
 const filterStartDate = ref('')
@@ -157,7 +157,7 @@ onMounted(loadData)
         </div>
         <p v-if="r.notes" class="text-xs text-gray-400 mt-2 italic">{{ r.notes }}</p>
         <button
-          v-if="!r.discrepancy_resolved"
+          v-if="isAdmin && !r.discrepancy_resolved"
           @click="openResolveModal(r)"
           :disabled="resolvingId === r.id"
           class="mt-3 w-full bg-purple text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors disabled:opacity-50"

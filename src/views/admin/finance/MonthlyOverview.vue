@@ -13,7 +13,7 @@ defineOptions({ name: 'MonthlyOverview' })
 
 const route = useRoute()
 const router = useRouter()
-const { user } = useAuth()
+const { user, isAdmin } = useAuth()
 
 // Month state
 const now = new Date()
@@ -243,7 +243,7 @@ onMounted(loadData)
       </div>
 
       <!-- Populate button (if no recurring/salary expenses yet) -->
-      <div v-if="recurringExpenses.length === 0 && salaryExpenses.length === 0 && !isClosed" class="bg-yellow-50 rounded-xl p-4 mb-6 text-center">
+      <div v-if="isAdmin && recurringExpenses.length === 0 && salaryExpenses.length === 0 && !isClosed" class="bg-yellow-50 rounded-xl p-4 mb-6 text-center">
         <p class="text-sm text-yellow-700 mb-3">No salaries or recurring expenses for this month yet. Populate them?</p>
         <button
           @click="handlePopulate"
@@ -259,7 +259,7 @@ onMounted(loadData)
         <div class="flex items-center justify-between mb-3">
           <h2 class="text-lg font-header font-bold text-gray-900">Income</h2>
           <button
-            v-if="!isClosed"
+            v-if="isAdmin && !isClosed"
             @click="router.push({ path: '/admin/finance/income/new', query: { month: currentMonth } })"
             class="text-sm text-purple font-medium hover:underline"
           >
@@ -286,7 +286,7 @@ onMounted(loadData)
             <p class="text-sm text-gray-900">{{ inc.description }}</p>
             <div class="flex items-center gap-3">
               <p class="text-sm font-semibold text-green-600">{{ formatPrice(inc.amount) }} KES</p>
-              <template v-if="!isClosed">
+              <template v-if="isAdmin && !isClosed">
                 <button
                   @click="router.push({ path: `/admin/finance/income/${inc.id}/edit`, query: { month: currentMonth } })"
                   class="text-xs text-purple hover:underline"
@@ -305,7 +305,7 @@ onMounted(loadData)
         <div class="flex items-center justify-between mb-3">
           <h2 class="text-lg font-header font-bold text-gray-900">Expenses</h2>
           <button
-            v-if="!isClosed"
+            v-if="isAdmin && !isClosed"
             @click="router.push({ path: '/admin/finance/expense/new', query: { month: currentMonth } })"
             class="text-sm text-purple font-medium hover:underline"
           >
@@ -340,7 +340,7 @@ onMounted(loadData)
               <p class="text-sm text-gray-900">{{ exp.description }}</p>
               <div class="flex items-center gap-2">
                 <input
-                  v-if="!isClosed"
+                  v-if="isAdmin && !isClosed"
                   type="number"
                   :value="exp.amount"
                   min="0"
@@ -371,7 +371,7 @@ onMounted(loadData)
               </div>
               <div class="flex items-center gap-3 flex-shrink-0">
                 <p class="text-sm font-semibold text-gray-900">{{ formatPrice(exp.amount) }} KES</p>
-                <template v-if="!isClosed">
+                <template v-if="isAdmin && !isClosed">
                   <button
                     @click="router.push({ path: `/admin/finance/expense/${exp.id}/edit`, query: { month: currentMonth } })"
                     class="text-xs text-purple hover:underline"
@@ -396,7 +396,7 @@ onMounted(loadData)
             <p class="text-xs text-gray-400">Tax-deductible expenses (not included in P&L above)</p>
           </div>
           <button
-            v-if="!isClosed"
+            v-if="isAdmin && !isClosed"
             @click="router.push({ path: '/admin/finance/expense/new', query: { month: currentMonth, type: 'write_off' } })"
             class="text-sm text-purple font-medium hover:underline"
           >
@@ -425,7 +425,7 @@ onMounted(loadData)
               </div>
               <div class="flex items-center gap-3 flex-shrink-0">
                 <p class="text-sm font-semibold text-amber-700">{{ formatPrice(exp.amount) }} KES</p>
-                <template v-if="!isClosed">
+                <template v-if="isAdmin && !isClosed">
                   <button
                     @click="router.push({ path: `/admin/finance/expense/${exp.id}/edit`, query: { month: currentMonth, type: 'write_off' } })"
                     class="text-xs text-purple hover:underline"
@@ -443,7 +443,7 @@ onMounted(loadData)
       </div>
 
       <!-- Close / Reopen month -->
-      <div v-if="!isClosed && expenses.length > 0" class="mt-8">
+      <div v-if="isAdmin && !isClosed && expenses.length > 0" class="mt-8">
         <button
           @click="showCloseConfirm = true"
           class="w-full bg-blue-950 text-white font-semibold py-3 rounded-xl text-base hover:bg-blue-900 transition-colors"
@@ -451,7 +451,7 @@ onMounted(loadData)
           Close Month
         </button>
       </div>
-      <div v-if="isClosed" class="mt-8">
+      <div v-if="isAdmin && isClosed" class="mt-8">
         <button
           @click="handleReopenMonth"
           class="w-full bg-gray-100 text-gray-600 font-semibold py-3 rounded-xl text-base hover:bg-gray-200 transition-colors"

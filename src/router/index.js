@@ -230,7 +230,7 @@ router.beforeEach(async (to) => {
 
   // Dynamic import to avoid circular dependency
   const { useAuth } = await import('@/composables/useAuth')
-  const { isAuthenticated, isAdmin, loading } = useAuth()
+  const { isAuthenticated, canViewAdmin, loading } = useAuth()
 
   // Wait for auth to initialize
   if (loading.value) {
@@ -248,7 +248,7 @@ router.beforeEach(async (to) => {
     return { name: 'AdminLogin', query: { redirect: to.fullPath } }
   }
 
-  if (to.meta.requiresAdmin && !isAdmin.value) {
+  if (to.meta.requiresAdmin && !canViewAdmin.value) {
     return { name: 'AdminClock' }
   }
 

@@ -1,9 +1,12 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { getShopLocation, updateShopLocation, getSetting, updateSetting } from '@/services/settingsService'
+import { useAuth } from '@/composables/useAuth'
 import { toast } from 'vue-sonner'
 
 defineOptions({ name: 'AdminSettings' })
+
+const { isAdmin } = useAuth()
 
 const form = ref({
   name: '',
@@ -206,6 +209,7 @@ onMounted(loadSettings)
 
       <!-- Save -->
       <button
+        v-if="isAdmin"
         type="submit"
         :disabled="saving"
         class="w-full bg-purple text-white font-semibold py-3 rounded-xl text-base hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -277,6 +281,7 @@ onMounted(loadSettings)
       </div>
 
       <button
+        v-if="isAdmin"
         type="submit"
         :disabled="savingHours"
         class="w-full bg-purple text-white font-semibold py-3 rounded-xl text-base hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
