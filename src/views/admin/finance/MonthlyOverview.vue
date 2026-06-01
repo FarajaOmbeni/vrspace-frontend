@@ -242,9 +242,9 @@ onMounted(loadData)
         </div>
       </div>
 
-      <!-- Populate button (if no expenses yet) -->
-      <div v-if="expenses.length === 0 && !isClosed" class="bg-yellow-50 rounded-xl p-4 mb-6 text-center">
-        <p class="text-sm text-yellow-700 mb-3">No expenses for this month yet. Populate with salaries and recurring expenses?</p>
+      <!-- Populate button (if no recurring/salary expenses yet) -->
+      <div v-if="recurringExpenses.length === 0 && salaryExpenses.length === 0 && !isClosed" class="bg-yellow-50 rounded-xl p-4 mb-6 text-center">
+        <p class="text-sm text-yellow-700 mb-3">No salaries or recurring expenses for this month yet. Populate them?</p>
         <button
           @click="handlePopulate"
           :disabled="populating"
