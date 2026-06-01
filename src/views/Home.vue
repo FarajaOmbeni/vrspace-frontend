@@ -28,8 +28,8 @@
   <section class="container mx-auto px-4 sm:px-6 mb-16 md:mb-20">
     <div class="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-5xl mx-auto">
       <div class="bg-blue/10 p-6 rounded-lg text-center">
-        <p class="text-3xl md:text-4xl font-bold text-blue mb-2">3+</p>
-        <p class="text-lg font-medium">VR Platforms</p>
+        <p class="text-3xl md:text-4xl font-bold text-blue mb-2">6+</p>
+        <p class="text-lg font-medium">Gaming Platforms</p>
       </div>
       <div class="bg-blue/10 p-6 rounded-lg text-center">
         <p class="text-3xl md:text-4xl font-bold text-blue mb-2">50+</p>
@@ -54,29 +54,61 @@
       <p class="text-lg max-w-3xl mx-auto">Choose from our premium selection of virtual reality experiences available at VR Space since February 2023</p>
     </div>
 
-    <!-- Experience Cards - we'll keep using the HomeOdd and HomeEven components but with updated content -->
-    <HomeOdd 
-      title="HTC Vive VR" 
-      :image_link="on_demand"
+    <HomeOdd
+      title="HTC Vive VR"
+      :image_link="htc"
       description="Experience premium interactive VR games with our high-quality HTC Vive headsets. Choose from a wide variety of games including boxing, shooting, horror, and children's games suitable for all ages."
-      link="/contact" 
-      button="Book This Experience" 
+      link="/contact"
+      button="Book This Experience"
     />
 
-    <HomeEven 
-      title="Egg Rollercoaster VR" 
-      :image_link="vr_education"
+    <HomeEven
+      title="Egg Rollercoaster VR"
+      :image_link="eggvr"
       description="Feel the adrenaline rush of our Egg Rollercoaster VR experiences. These dynamic motion platforms offer thrilling adventures across multiple genres, from heart-racing horror to breathtaking height experiences."
-      link="/contact" 
-      button="Book This Experience" 
+      link="/contact"
+      button="Book This Experience"
     />
 
-    <HomeOdd 
-      title="GT Racing Simulator" 
-      :image_link="events"
+    <HomeOdd
+      title="GT Racing Simulator"
+      :image_link="gtr"
       description="Take the wheel in our high-performance GT Racing simulators. Experience the thrill of racing at speeds up to 300km/h with zero risk, suitable for all skill levels."
-      link="/contact" 
-      button="Book This Experience" 
+      link="/contact"
+      button="Book This Experience"
+    />
+  </section>
+
+  <!-- Console & Gaming Section -->
+  <section class="container mx-auto px-4 sm:px-6 mb-16 md:mb-20">
+    <div class="text-center mb-12">
+      <p class="text-pink inline-block font-medium mb-2 py-1 px-4 rounded-full bg-pink/10">Available Now</p>
+      <h2 class="text-3xl sm:text-4xl font-bold font-header text-blue mb-4">Console & Gaming</h2>
+      <p class="text-lg max-w-3xl mx-auto">Not just VR — level up with our console gaming experiences featuring the latest platforms and hottest titles</p>
+    </div>
+
+    <HomeOdd
+      title="PlayStation 5"
+      :image_link="ps5"
+      description="The ultimate gaming showdown — grab a controller and settle the score. Play FIFA, Fortnite, GTA V, Brawlhalla, Spider-Man, The Last of Us, and Minecraft. 2 players, 30 minutes per round."
+      link="/contact"
+      button="Book This Experience"
+    />
+
+    <HomeEven
+      title="Nintendo Switch"
+      :image_link="nintendo"
+      description="Pick up, play, and prepare for pure joy — Nintendo magic at its finest. Mario Kart mayhem, quick rounds perfect for all ages, and the party starter everyone loves. 2 players, 10 min duo or 5 min solo."
+      link="/contact"
+      button="Book This Experience"
+    />
+
+    <HomeOdd
+      title="Meta Quest VR"
+      :image_link="meta"
+      description="Step inside the game — no wires, no limits, just pure immersion. Standalone VR with total freedom of movement, mind-blowing beat-slashing action, and worlds that feel impossibly real."
+      link="/contact"
+      button="Book This Experience"
     />
   </section>
 
@@ -395,9 +427,12 @@ defineOptions({
 });
 
 // Images
-import on_demand from '@/assets/images/home/on_demand.jpeg';
-import vr_education from '@/assets/images/home/vr_education.jpeg';
-import events from '@/assets/images/home/events.jpeg';
+import htc from '@/assets/images/experiences/htc.jpg';
+import eggvr from '@/assets/images/experiences/eggvr.jpg';
+import gtr from '@/assets/images/experiences/gt.jpg';
+import ps5 from '@/assets/images/experiences/ps5.jpg';
+import nintendo from '@/assets/images/experiences/nintendo.png';
+import meta from '@/assets/images/experiences/meta.jpg';
 </script>
 
 <style scoped>

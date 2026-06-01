@@ -67,6 +67,55 @@
           />
         </div>
 
+        <!-- Console & Gaming Experiences -->
+        <div>
+          <h3 class="text-3xl font-bold text-pink text-center mb-16 font-header">CONSOLE & GAMING</h3>
+
+          <div class="space-y-24">
+            <ExperienceOdd
+              :image_link="ps5"
+              title="PlayStation 5"
+              :image="icon"
+              player="2 Players/Time"
+              time="30 Minutes/Round"
+              price="KES 500"
+              description="The ultimate gaming showdown — grab a controller and settle the score."
+              d1="FIFA, Fortnite, GTA V & Brawlhalla for epic showdowns"
+              d2="Swing through NYC in Spider-Man or survive The Last of Us"
+              d3="Build worlds together in Minecraft"
+              d4="7 titles to choose from — something for everyone"
+            />
+
+            <ExperienceEven
+              :image_link="nintendo"
+              title="Nintendo Switch"
+              :image="icon"
+              player="2 Players/Time"
+              time="10 Min (Duo) · 5 Min (Solo)"
+              price="KES 500/Person"
+              description="Pick up, play, and prepare for pure joy — Nintendo magic at its finest."
+              d1="Mario Kart mayhem with friends"
+              d2="Quick rounds perfect for all ages"
+              d3="Easy to learn, impossible to put down"
+              d4="The party starter everyone loves"
+            />
+
+            <ExperienceOdd
+              :image_link="meta"
+              title="Meta Quest VR"
+              :image="icon"
+              player="1 Player/Time"
+              time="5 Minutes/Round"
+              price="KES 500"
+              description="Step inside the game — no wires, no limits, just pure immersion."
+              d1="Standalone VR with total freedom of movement"
+              d2="Mind-blowing beat-slashing and action games"
+              d3="Experience worlds that feel impossibly real"
+              d4="The future of gaming, RIGHT here"
+            />
+          </div>
+        </div>
+
         <!-- Coming Soon Experiences -->
         <div>
           <h3 class="text-3xl font-bold text-pink text-center mb-16 font-header">COMING SOON</h3>
@@ -118,20 +167,19 @@
       </div>
     </section>
 
-    <!-- Call to Action -->
-    <section class="bg-blue py-16 mb-20">
-      <div class="container mx-auto px-6">
-        <div class="max-w-4xl mx-auto text-center">
-          <h2 class="text-3xl md:text-4xl text-white font-bold mb-6 font-header">READY TO EXPERIENCE VR?</h2>
-          <p class="text-lg text-white mb-8">
-            Book your session now and dive into the exciting world of virtual reality at VR SPACE!
-          </p>
-          <RouterLink to="/contact" class="inline-block bg-pink text-white font-bold py-4 px-10 rounded-full text-xl transition-all duration-300 hover:shadow-lg hover:opacity-90">
-            BOOK NOW
-          </RouterLink>
-        </div>
+    <!-- Partner: Kayak -->
+    <section class="container mx-auto px-6 mb-20">
+      <div class="max-w-3xl mx-auto text-center bg-gray-50 rounded-2xl py-10 px-6">
+        <p class="text-lg md:text-xl text-gray-700 font-medium">
+          Want more experiences in Nairobi?
+        </p>
+        <a href="https://www.kayak.com/Nairobi.26243.guide" target="_blank" rel="noopener noreferrer"
+          class="inline-block mt-4 bg-pink text-white font-bold py-3 px-8 rounded-full text-lg transition-all duration-300 hover:shadow-lg hover:opacity-90">
+          Explore on Kayak
+        </a>
       </div>
     </section>
+
   </div>
 </template>
 
@@ -146,12 +194,15 @@ defineOptions({
 });
 
 // Images
-import htc from '@/assets/images/experiences/htc.png';
-import eggvr from '@/assets/images/experiences/eggvr.png';
-import gtr from '@/assets/images/experiences/gtr.webp';
-import racing_kart from '@/assets/images/experiences/racing_kart.png';
-import magic_ufo from '@/assets/images/experiences/magic_ufo.png';
-import aircraft from '@/assets/images/experiences/aircraft.png';
+import htc from '@/assets/images/experiences/htc.jpg';
+import eggvr from '@/assets/images/experiences/eggvr.jpg';
+import gtr from '@/assets/images/experiences/gt.jpg';
+import racing_kart from '@/assets/images/experiences/cartvr.jpg';
+import magic_ufo from '@/assets/images/experiences/ufo.jpg';
+import aircraft from '@/assets/images/experiences/aircraft.jpg';
+import ps5 from '@/assets/images/experiences/ps5.jpg';
+import nintendo from '@/assets/images/experiences/nintendo.png';
+import meta from '@/assets/images/experiences/meta.jpg';
 import icon from '@/assets/images/experiences/user.png';
 </script>
 
