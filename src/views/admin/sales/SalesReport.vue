@@ -32,9 +32,16 @@ function getDateRange() {
     end = filterEndDate.value ? new Date(filterEndDate.value) : null
   }
 
+  function toDateStr(d) {
+    const y = d.getFullYear()
+    const m = String(d.getMonth() + 1).padStart(2, '0')
+    const day = String(d.getDate()).padStart(2, '0')
+    return `${y}-${m}-${day}`
+  }
+
   return {
-    startDate: start ? start.toISOString().split('T')[0] : undefined,
-    endDate: end ? end.toISOString().split('T')[0] : undefined,
+    startDate: start ? toDateStr(start) : undefined,
+    endDate: end ? toDateStr(end) : undefined,
   }
 }
 
