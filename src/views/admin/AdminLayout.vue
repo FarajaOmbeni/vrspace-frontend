@@ -32,6 +32,7 @@ const adminMenuItems = computed(() => [
   { label: 'Employees', to: '/admin/employees' },
   { label: 'Partner Staff', to: '/admin/partner-staff' },
   { label: 'Partner Staff Report', to: '/admin/partner-staff/report' },
+  { label: 'TikTok Videos', to: '/admin/tiktok' },
   { label: 'Settings', to: '/admin/settings' },
 ])
 

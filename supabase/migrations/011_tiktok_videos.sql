@@ -11,3 +11,13 @@ alter table tiktok_videos enable row level security;
 create policy "Allow public read access on tiktok_videos"
   on tiktok_videos for select
   using (true);
+
+create policy "Allow authenticated insert on tiktok_videos"
+  on tiktok_videos for insert
+  to authenticated
+  with check (true);
+
+create policy "Allow authenticated delete on tiktok_videos"
+  on tiktok_videos for delete
+  to authenticated
+  using (true);

@@ -163,6 +163,12 @@ const router = createRouter({
           meta: { requiresAdmin: true }
         },
         {
+          path: 'tiktok',
+          name: 'AdminTiktok',
+          component: () => import('@/views/admin/tiktok/TiktokVideos.vue'),
+          meta: { requiresAdmin: true }
+        },
+        {
           path: 'settings',
           name: 'AdminSettings',
           component: () => import('@/views/admin/Settings.vue'),
