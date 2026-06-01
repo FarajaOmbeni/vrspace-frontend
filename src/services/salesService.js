@@ -72,6 +72,19 @@ export async function getDiscrepancies({ startDate, endDate, showResolved = fals
   return data
 }
 
+export async function getMissingPartnerReports(startDate) {
+  const { data, error } = await supabase
+    .from('daily_sales')
+    .select('date')
+    .gte('date', startDate)
+    .is('partner_reported_revenue', null)
+    .gt('total_revenue', 0)
+    .order('date', { ascending: false })
+
+  if (error) throw error
+  return data.map((r) => r.date)
+}
+
 export async function resolveDiscrepancy(id, { resolvedBy, resolvedWith, notes }) {
   const { data, error } = await supabase
     .from('daily_sales')

@@ -1,16 +1,18 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
-import { getDailySales, updatePartnerRevenue } from '@/services/salesService'
+import { getDailySales, updatePartnerRevenue, getMissingPartnerReports } from '@/services/salesService'
 import { getSessionsByDate } from '@/services/sessionService'
 import { toast } from 'vue-sonner'
 
 defineOptions({ name: 'DailySalesForm' })
 
+const route = useRoute()
 const { user, isAdmin } = useAuth()
 
-// Default to today
-const selectedDate = ref(new Date().toISOString().split('T')[0])
+// Use query param date if provided, otherwise default to today
+const selectedDate = ref(route.query.date || new Date().toISOString().split('T')[0])
 
 const dailySales = ref(null)
 const sessions = ref([])
@@ -18,6 +20,8 @@ const loading = ref(true)
 const saving = ref(false)
 const partnerRevenue = ref('')
 const notes = ref('')
+const missingDates = ref([])
+const loadingMissing = ref(true)
 
 const sessionTotal = computed(() =>
   sessions.value.reduce((a, s) => a + Number(s.total_amount), 0)
@@ -82,8 +86,30 @@ async function handleSubmit() {
   }
 }
 
+function formatDateShort(dateStr) {
+  return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-KE', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  })
+}
+
+async function loadMissingDates() {
+  loadingMissing.value = true
+  try {
+    missingDates.value = await getMissingPartnerReports('2026-05-01')
+  } catch (e) {
+    // silent fail
+  } finally {
+    loadingMissing.value = false
+  }
+}
+
 watch(selectedDate, loadData)
-onMounted(loadData)
+onMounted(() => {
+  loadData()
+  loadMissingDates()
+})
 </script>
 
 <template>
@@ -95,6 +121,22 @@ onMounted(loadData)
         type="date"
         class="rounded-xl border-gray-300 px-4 py-2 text-sm focus:border-purple-500 focus:ring-purple-500"
       />
+    </div>
+
+    <!-- Missing partner reports -->
+    <div v-if="!loadingMissing && missingDates.length > 0" class="bg-orange-50 border border-orange-200 rounded-xl p-4 mb-4">
+      <p class="text-sm font-medium text-orange-800 mb-2">Missing partner reports</p>
+      <div class="flex flex-wrap gap-2">
+        <button
+          v-for="date in missingDates"
+          :key="date"
+          @click="selectedDate = date"
+          class="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors"
+          :class="selectedDate === date ? 'bg-purple text-white' : 'bg-orange-100 text-orange-700 hover:bg-orange-200'"
+        >
+          {{ formatDateShort(date) }}
+        </button>
+      </div>
     </div>
 
     <!-- Loading -->
