@@ -127,6 +127,12 @@ const router = createRouter({
           meta: { requiresAdmin: true }
         },
         {
+          path: 'machines/report',
+          name: 'AdminMachinesReport',
+          component: () => import('@/views/admin/machines/MachinesReport.vue'),
+          meta: { requiresAdmin: true }
+        },
+        {
           path: 'machines/:id/edit',
           name: 'AdminMachineEdit',
           component: () => import('@/views/admin/machines/MachineForm.vue'),

@@ -60,6 +60,31 @@ export async function deleteSession(id) {
   if (error) throw error
 }
 
+export async function getMachineRevenue({ startDate, endDate } = {}) {
+  let query = supabase
+    .from('sessions')
+    .select('machine_id, session_count, total_amount, machines:machine_id(name)')
+    .order('machine_id')
+
+  if (startDate) query = query.gte('date', startDate)
+  if (endDate) query = query.lte('date', endDate)
+
+  const { data, error } = await query
+  if (error) throw error
+
+  const map = {}
+  for (const s of data) {
+    const id = s.machine_id
+    if (!map[id]) {
+      map[id] = { name: s.machines?.name || 'Unknown', sessions: 0, revenue: 0 }
+    }
+    map[id].sessions += s.session_count
+    map[id].revenue += Number(s.total_amount)
+  }
+
+  return Object.values(map).sort((a, b) => b.revenue - a.revenue)
+}
+
 export async function getTodayTotals() {
   const today = new Date().toISOString().split('T')[0]
 
