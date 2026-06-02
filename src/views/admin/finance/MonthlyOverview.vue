@@ -13,7 +13,7 @@ defineOptions({ name: 'MonthlyOverview' })
 
 const route = useRoute()
 const router = useRouter()
-const { user } = useAuth()
+const { user, isAdmin } = useAuth()
 
 // Month state
 const now = new Date()
@@ -29,6 +29,7 @@ const loading = ref(true)
 const populating = ref(false)
 const closing = ref(false)
 const showCloseConfirm = ref(false)
+const editingExpenseId = ref(null)
 
 /** Calendar-year cumulative through selected month (from getCumulativeFinanceThroughMonth). */
 const cumulative = ref(null)
@@ -126,6 +127,7 @@ async function handlePopulate() {
 }
 
 async function handleUpdateAmount(expense, newAmount) {
+  editingExpenseId.value = null
   try {
     await updateExpense(expense.id, { amount: newAmount })
     expense.amount = newAmount
@@ -323,7 +325,23 @@ onMounted(loadData)
               class="flex items-center justify-between px-4 py-3 border-b border-gray-100 last:border-0"
             >
               <p class="text-sm text-gray-900">{{ exp.description }}</p>
-              <p class="text-sm font-semibold text-gray-900">{{ formatPrice(exp.amount) }} KES</p>
+              <input
+                v-if="editingExpenseId === exp.id"
+                type="number"
+                :value="exp.amount"
+                min="0"
+                step="100"
+                @blur="handleUpdateAmount(exp, Number($event.target.value))"
+                @keyup.enter="$event.target.blur()"
+                @vue:mounted="$event.el.focus(); $event.el.select()"
+                class="w-28 text-right rounded-lg border-gray-300 text-sm py-1 px-2 focus:border-purple-500 focus:ring-purple-500"
+              />
+              <p
+                v-else
+                class="text-sm font-semibold text-gray-900"
+                :class="{ 'cursor-pointer hover:text-purple': isAdmin && !isClosed }"
+                @dblclick="isAdmin && !isClosed && (editingExpenseId = exp.id)"
+              >{{ formatPrice(exp.amount) }} KES</p>
             </div>
           </div>
         </div>
@@ -338,18 +356,23 @@ onMounted(loadData)
               class="flex items-center justify-between px-4 py-3 border-b border-gray-100 last:border-0"
             >
               <p class="text-sm text-gray-900">{{ exp.description }}</p>
-              <div class="flex items-center gap-2">
-                <input
-                  v-if="!isClosed"
-                  type="number"
-                  :value="exp.amount"
-                  min="0"
-                  step="100"
-                  @change="handleUpdateAmount(exp, Number($event.target.value))"
-                  class="w-28 text-right rounded-lg border-gray-300 text-sm py-1 px-2 focus:border-purple-500 focus:ring-purple-500"
-                />
-                <p v-else class="text-sm font-semibold text-gray-900">{{ formatPrice(exp.amount) }} KES</p>
-              </div>
+              <input
+                v-if="editingExpenseId === exp.id"
+                type="number"
+                :value="exp.amount"
+                min="0"
+                step="100"
+                @blur="handleUpdateAmount(exp, Number($event.target.value))"
+                @keyup.enter="$event.target.blur()"
+                @vue:mounted="$event.el.focus(); $event.el.select()"
+                class="w-28 text-right rounded-lg border-gray-300 text-sm py-1 px-2 focus:border-purple-500 focus:ring-purple-500"
+              />
+              <p
+                v-else
+                class="text-sm font-semibold text-gray-900"
+                :class="{ 'cursor-pointer hover:text-purple': isAdmin && !isClosed }"
+                @dblclick="isAdmin && !isClosed && (editingExpenseId = exp.id)"
+              >{{ formatPrice(exp.amount) }} KES</p>
             </div>
           </div>
         </div>
