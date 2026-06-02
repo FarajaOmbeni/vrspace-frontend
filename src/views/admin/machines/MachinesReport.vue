@@ -87,6 +87,7 @@ const chartOptions = {
   scales: {
     y: {
       beginAtZero: true,
+      grace: '15%',
       ticks: {
         callback: (value) => Number(value).toLocaleString('en-KE'),
       },
