@@ -411,7 +411,7 @@ export async function getCumulativeFinanceThroughMonth(throughMonth) {
         .lte('date', lastDay),
       supabase
         .from('monthly_expenses')
-        .select('amount')
+        .select('amount, type')
         .gte('month', yearStart)
         .lte('month', throughMonth),
       supabase
@@ -427,11 +427,14 @@ export async function getCumulativeFinanceThroughMonth(throughMonth) {
 
   const vrTotal = (salesRows || []).reduce((sum, r) => sum + vrOurShareForFinance(r), 0)
   const additionalTotal = (incRows || []).reduce((sum, r) => sum + Number(r.amount || 0), 0)
-  const expenseTotal = (expRows || []).reduce((sum, r) => sum + Number(r.amount || 0), 0)
+  const operationalRows = (expRows || []).filter((r) => r.type !== 'write_off')
+  const writeOffRows = (expRows || []).filter((r) => r.type === 'write_off')
+  const expenseTotal = operationalRows.reduce((sum, r) => sum + Number(r.amount || 0), 0)
+  const writeOffTotal = writeOffRows.reduce((sum, r) => sum + Number(r.amount || 0), 0)
   const totalIncome = vrTotal + additionalTotal
   const profitLoss = totalIncome - expenseTotal
 
-  return { totalIncome, totalExpenses: expenseTotal, profitLoss, vrTotal, additionalTotal }
+  return { totalIncome, totalExpenses: expenseTotal, profitLoss, vrTotal, additionalTotal, writeOffTotal }
 }
 
 export async function closeMonth(month, closedBy, totalIncome, totalExpenses) {
