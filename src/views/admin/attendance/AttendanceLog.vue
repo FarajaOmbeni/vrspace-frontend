@@ -28,6 +28,11 @@ const showManualClock = ref(false)
 const manualEmployeeId = ref('')
 const manualActing = ref(false)
 
+// Clock-out time picker
+const showClockOutModal = ref(false)
+const clockOutRecord = ref(null)
+const clockOutTime = ref('')
+
 async function handleManualClockIn() {
   if (!manualEmployeeId.value) {
     toast.error('Select an employee')
@@ -48,10 +53,25 @@ async function handleManualClockIn() {
   }
 }
 
-async function handleManualClockOut(record) {
+function openClockOutModal(record) {
+  clockOutRecord.value = record
+  // Default to the record's date with current time, or closing time
+  const date = record.date
+  const now = new Date()
+  const hh = String(now.getHours()).padStart(2, '0')
+  const mm = String(now.getMinutes()).padStart(2, '0')
+  clockOutTime.value = `${date}T${hh}:${mm}`
+  showClockOutModal.value = true
+}
+
+async function handleManualClockOut() {
+  if (!clockOutRecord.value || !clockOutTime.value) return
   try {
-    await clockOut(record.id)
-    toast.success(`${record.profiles?.full_name || 'Employee'} clocked out`)
+    const localDt = new Date(clockOutTime.value)
+    await clockOut(clockOutRecord.value.id, localDt.toISOString())
+    toast.success(`${clockOutRecord.value.profiles?.full_name || 'Employee'} clocked out`)
+    showClockOutModal.value = false
+    clockOutRecord.value = null
     loadData()
   } catch (e) {
     toast.error(e.message || 'Failed to clock out employee')
@@ -255,7 +275,7 @@ onMounted(loadData)
         </div>
         <button
           v-if="!rec.clock_out"
-          @click="handleManualClockOut(rec)"
+          @click="openClockOutModal(rec)"
           class="mt-3 w-full bg-red-50 text-red-600 text-sm font-medium py-2 rounded-lg hover:bg-red-100 transition-colors"
         >
           Clock Out
@@ -295,7 +315,7 @@ onMounted(loadData)
             <td class="px-6 py-4 text-right">
               <button
                 v-if="!rec.clock_out"
-                @click="handleManualClockOut(rec)"
+                @click="openClockOutModal(rec)"
                 class="text-sm font-medium text-red-500 hover:text-red-700 transition-colors"
               >
                 Clock Out
@@ -306,5 +326,33 @@ onMounted(loadData)
       </table>
     </div>
     </template>
+
+    <!-- Clock Out Time Picker Modal -->
+    <div v-if="showClockOutModal" class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+      <div class="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-1">Clock Out</h3>
+        <p class="text-sm text-gray-500 mb-4">{{ clockOutRecord?.profiles?.full_name }}</p>
+        <label class="block text-xs font-medium text-gray-500 mb-1">Clock-out time</label>
+        <input
+          v-model="clockOutTime"
+          type="datetime-local"
+          class="w-full rounded-lg border-gray-300 text-sm py-2.5 focus:border-purple-500 focus:ring-purple-500 mb-4"
+        />
+        <div class="flex gap-2">
+          <button
+            @click="handleManualClockOut"
+            class="flex-1 bg-red-500 text-white font-medium py-2.5 rounded-xl text-sm hover:bg-red-600 transition-colors"
+          >
+            Confirm Clock Out
+          </button>
+          <button
+            @click="showClockOutModal = false; clockOutRecord = null"
+            class="flex-1 bg-gray-100 text-gray-600 font-medium py-2.5 rounded-xl text-sm hover:bg-gray-200 transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>

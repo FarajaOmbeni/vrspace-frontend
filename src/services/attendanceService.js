@@ -30,10 +30,10 @@ export async function clockIn(employeeId) {
   return data
 }
 
-export async function clockOut(recordId) {
+export async function clockOut(recordId, clockOutTime = null) {
   const { data, error } = await supabase
     .from('attendance')
-    .update({ clock_out: new Date().toISOString() })
+    .update({ clock_out: clockOutTime || new Date().toISOString() })
     .eq('id', recordId)
     .select()
     .single()

@@ -78,6 +78,7 @@ async function handleSubmit() {
       notes.value
     )
     await loadData()
+    await loadMissingDates()
     toast.success('Partner revenue saved')
   } catch (e) {
     toast.error(e.message || 'Failed to save')
