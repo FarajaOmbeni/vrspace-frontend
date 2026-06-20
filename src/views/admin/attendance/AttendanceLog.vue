@@ -96,8 +96,9 @@ function formatTime(dateStr) {
 
 function formatHours(hours) {
   if (!hours) return '—'
-  const h = Math.floor(hours)
-  const m = Math.round((hours - h) * 60)
+  let h = Math.floor(hours)
+  let m = Math.round((hours - h) * 60)
+  if (m === 60) { h++; m = 0 }
   return `${h}h ${m}m`
 }
 
