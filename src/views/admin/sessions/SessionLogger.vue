@@ -8,7 +8,7 @@ import { toast } from 'vue-sonner'
 
 defineOptions({ name: 'SessionLogger' })
 
-const { user } = useAuth()
+const { user, isAdmin } = useAuth()
 
 const machines = ref([])
 const sessions = ref([])
@@ -129,6 +129,17 @@ onMounted(loadData)
     </div>
 
     <template v-else>
+      <!-- View history link (admin only) -->
+      <div v-if="isAdmin" class="flex justify-end mb-2">
+        <router-link
+          to="/admin/sessions/history"
+          class="text-sm font-medium text-purple hover:text-purple-700 flex items-center gap-1"
+        >
+          View History
+          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+        </router-link>
+      </div>
+
       <!-- Today's totals -->
       <div class="bg-purple rounded-xl p-4 mb-4 text-white flex items-center justify-between">
         <div>
