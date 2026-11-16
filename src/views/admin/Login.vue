@@ -18,8 +18,6 @@ async function handleLogin() {
 
   try {
     await signIn(email.value, password.value)
-    // Wait briefly for profile to load
-    await new Promise((r) => setTimeout(r, 300))
     router.push(isAdmin.value ? '/admin/dashboard' : '/admin/clock')
   } catch (e) {
     error.value = e.message || 'Invalid email or password'

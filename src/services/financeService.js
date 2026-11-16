@@ -53,7 +53,21 @@ export async function listMonthlyExpenses(month) {
     .order('description')
 
   if (error) throw error
-  return data
+  return withSignedReceipts(data)
+}
+
+export async function getExpense(id) {
+  const { data, error } = await supabase
+    .from('monthly_expenses')
+    .select('*')
+    .eq('id', id)
+    .single()
+
+  if (error) throw error
+  const [signed] = await withSignedReceipts([data])
+  // Keep the stored value in receipt_url (so saving the form doesn't write a
+  // temporary signed link back to the DB); expose the viewable link separately.
+  return { ...data, receipt_view_url: signed.receipt_url }
 }
 
 function localDateString(d) {
@@ -196,11 +210,42 @@ export async function uploadReceipt(file, expenseId) {
 
   if (error) throw error
 
-  const { data } = supabase.storage
-    .from('expense-receipts')
-    .getPublicUrl(path)
+  // The bucket is private: store the object path, sign it when displaying.
+  return path
+}
 
-  return data.publicUrl
+const RECEIPT_BUCKET = 'expense-receipts'
+const RECEIPT_URL_TTL_SECONDS = 60 * 60
+
+/** Accepts a stored path or a legacy public/signed URL and returns the object path. */
+function receiptPath(value) {
+  if (!value) return null
+  const marker = `/${RECEIPT_BUCKET}/`
+  const i = value.indexOf(marker)
+  const path = i === -1 ? value : value.slice(i + marker.length)
+  return decodeURIComponent(path.split('?')[0])
+}
+
+/** Returns copies of rows with receipt_url replaced by a short-lived signed URL. */
+async function withSignedReceipts(rows) {
+  if (!rows?.length) return rows
+  const paths = [...new Set(rows.map((r) => receiptPath(r.receipt_url)).filter(Boolean))]
+  if (!paths.length) return rows
+
+  const { data, error } = await supabase.storage
+    .from(RECEIPT_BUCKET)
+    .createSignedUrls(paths, RECEIPT_URL_TTL_SECONDS)
+
+  if (error) {
+    console.error('Failed to sign receipt URLs:', error.message)
+    return rows.map((r) => ({ ...r, receipt_url: null }))
+  }
+
+  const byPath = Object.fromEntries(data.map((d) => [d.path, d.signedUrl]))
+  return rows.map((r) => {
+    const path = receiptPath(r.receipt_url)
+    return path ? { ...r, receipt_url: byPath[path] || null } : r
+  })
 }
 
 // ── Additional Income ──
@@ -348,7 +393,7 @@ export async function getFinanceReport({ startMonth, endMonth }) {
   return {
     monthlyBreakdown,
     totals,
-    expenses: expRows || [],
+    expenses: await withSignedReceipts(expRows || []),
     incomeItems: incRows || [],
     vrByMonth,
     vrDailyItems,

@@ -114,7 +114,7 @@ async function handleDelete(session) {
     await refreshTotals()
     toast.success('Session removed')
   } catch (e) {
-    toast.error('Failed to delete session')
+    toast.error(e.message || 'Failed to delete session')
   }
 }
 

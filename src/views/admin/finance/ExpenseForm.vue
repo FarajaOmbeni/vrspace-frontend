@@ -1,8 +1,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { createOneOffExpense, createWriteOffExpense, updateExpense, uploadReceipt } from '@/services/financeService'
-import { supabase } from '@/lib/supabase'
+import { createOneOffExpense, createWriteOffExpense, getExpense, updateExpense, uploadReceipt } from '@/services/financeService'
 import { toast } from 'vue-sonner'
 
 defineOptions({ name: 'ExpenseForm' })
@@ -46,18 +45,13 @@ function removeReceipt() {
 async function loadExpense() {
   loadingData.value = true
   try {
-    const { data, error } = await supabase
-      .from('monthly_expenses')
-      .select('*')
-      .eq('id', route.params.id)
-      .single()
-    if (error) throw error
+    const data = await getExpense(route.params.id)
     form.value = {
       description: data.description,
       amount: Number(data.amount),
       receipt_url: data.receipt_url,
     }
-    if (data.receipt_url) receiptPreview.value = data.receipt_url
+    if (data.receipt_view_url) receiptPreview.value = data.receipt_view_url
   } catch (e) {
     toast.error('Failed to load expense')
     router.back()

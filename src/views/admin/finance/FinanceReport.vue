@@ -161,7 +161,7 @@ async function downloadReceipt(url, description) {
     const blob = await response.blob()
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
-    a.download = description.replace(/[^a-zA-Z0-9]/g, '_') + '.' + (url.split('.').pop() || 'jpg')
+    a.download = description.replace(/[^a-zA-Z0-9]/g, '_') + '.' + (url.split('?')[0].split('.').pop() || 'jpg')
     a.click()
     URL.revokeObjectURL(a.href)
   } catch {

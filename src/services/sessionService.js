@@ -52,12 +52,18 @@ export async function updateSessionCount(id, sessionCount) {
 }
 
 export async function deleteSession(id) {
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('sessions')
     .delete()
     .eq('id', id)
+    .select('id')
 
   if (error) throw error
+  // RLS blocks deletes silently (0 rows, no error) — e.g. an employee
+  // deleting a session from a previous day.
+  if (!data?.length) {
+    throw new Error('You can only remove sessions you logged today. Ask an admin to fix older ones.')
+  }
 }
 
 export async function getMachineRevenue({ startDate, endDate } = {}) {

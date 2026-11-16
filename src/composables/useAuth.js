@@ -56,6 +56,10 @@ async function signIn(email, password) {
   })
 
   if (error) throw error
+
+  // Load the profile before returning so callers can rely on isAdmin.
+  user.value = data.user
+  await fetchProfile(data.user.id)
   return data
 }
 
