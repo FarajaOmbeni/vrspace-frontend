@@ -138,7 +138,7 @@ onMounted(loadMachines)
             <button
               @click="handleToggle(machine)"
               :class="[
-                'relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
+                'relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors tap-target',
                 machine.is_active ? 'bg-green-500' : 'bg-gray-300',
               ]"
             >

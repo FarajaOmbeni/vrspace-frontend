@@ -102,7 +102,7 @@
                                 </div>
                             </div>
                             <a :href="business.whatsapp.url" target="_blank" rel="noopener noreferrer"
-                                class="mt-4 inline-block bg-[#25D366] text-white font-bold py-3 px-6 rounded-lg hover:opacity-90 transition-opacity">
+                                class="mt-4 inline-block bg-[#25D366] text-blue font-bold py-3 px-6 rounded-lg hover:opacity-90 transition-opacity">
                                 Chat on WhatsApp
                             </a>
                         </div>

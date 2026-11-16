@@ -174,6 +174,7 @@ async function handleSubmit() {
           id="salary"
           v-model.number="form.salary"
           type="number"
+          inputmode="decimal"
           min="0"
           step="500"
           placeholder="e.g. 25000"

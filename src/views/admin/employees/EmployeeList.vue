@@ -3,6 +3,9 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { listEmployees, toggleEmployeeActive } from '@/services/employeeService'
 import { toast } from 'vue-sonner'
+import { useConfirm } from '@/composables/useConfirm'
+
+const { confirm } = useConfirm()
 
 defineOptions({ name: 'EmployeeList' })
 
@@ -30,6 +33,14 @@ async function loadEmployees() {
 
 async function handleToggle(employee) {
   const newState = !employee.is_active
+  if (!newState) {
+    const ok = await confirm({
+      title: `Deactivate ${employee.full_name}?`,
+      message: "They'll no longer get a salary row when you populate a month. You can reactivate them any time.",
+      confirmLabel: 'Deactivate',
+    })
+    if (!ok) return
+  }
   try {
     await toggleEmployeeActive(employee.id, newState)
     employee.is_active = newState
@@ -135,7 +146,7 @@ onMounted(loadEmployees)
           <button
             @click="handleToggle(emp)"
             :class="[
-              'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
+              'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors tap-target',
               emp.is_active ? 'bg-green-500' : 'bg-gray-300',
             ]"
           >

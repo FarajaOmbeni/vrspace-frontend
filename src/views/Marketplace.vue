@@ -13,30 +13,32 @@
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-16">
                 <div v-for="product in products" :key="product.id"
                     class="bg-white rounded-lg shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300 border-2 border-gray-200 hover:border-gray-300 ring-4 ring-purple-400 ring-opacity-50 border-purple-300">
-                    <div class="h-40 relative overflow-hidden cursor-pointer group" @click="openImageModal(product)">
+                    <button type="button" class="block w-full h-40 relative overflow-hidden cursor-pointer group focus:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-purple"
+                        :aria-label="`View larger photo of ${product.name}, ${product.storage}`" aria-haspopup="dialog"
+                        @click="openImageModal(product)">
                         <img :src="product.image" :alt="product.name"
                             class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300">
                         <div class="absolute inset-0 bg-gradient-to-br from-purple-500 to-pink-500 opacity-20"></div>
                         <!-- Click to view indicator -->
                         <div
                             class="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 transition-all duration-300 flex items-center justify-center">
-                            <div class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-white">
-                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div class="opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity duration-300 text-white">
+                                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7">
                                     </path>
                                 </svg>
                             </div>
                         </div>
-                    </div>
+                    </button>
                     <div
                         class="border-t-2 border-gray-200 p-4 bg-gradient-to-br from-purple-50 to-pink-50 border-t-purple-200">
                         <h3 class="text-lg font-bold mb-2 line-clamp-2">{{ product.name }}</h3>
                         <p class="text-gray-600 mb-3 text-sm">{{ product.storage }} Storage</p>
                         <div class="flex justify-between items-center">
                             <span class="text-lg font-bold text-blue-600">{{ product.price }}</span>
-                            <button @click="openCheckout(product)"
-                                class="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white py-2 px-3 rounded-full font-bold text-sm transition-all duration-300 hover:opacity-90 hover:shadow-md">
+                            <button type="button" @click="openCheckout(product)" aria-haspopup="dialog"
+                                class="bg-gradient-to-r from-purple-600 to-pink-800 hover:from-purple-700 hover:to-pink-900 text-white py-2 px-3 rounded-full font-bold text-sm transition-all duration-300 hover:opacity-90 hover:shadow-md">
                                 Buy Now
                             </button>
                         </div>
@@ -49,8 +51,9 @@
         <div v-if="showCheckoutModal"
             class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
             @click="closeCheckout">
-            <div class="bg-white rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto" @click.stop>
-                <h2 class="text-2xl font-bold mb-6 text-center">Checkout</h2>
+            <div ref="checkoutDialog" role="dialog" aria-modal="true" aria-labelledby="checkout-title" tabindex="-1"
+                class="bg-white rounded-lg max-w-md w-full p-6 max-h-[90vh] overflow-y-auto focus:outline-none" @click.stop>
+                <h2 id="checkout-title" class="text-2xl font-bold mb-6 text-center">Checkout</h2>
 
                 <!-- Selected Product -->
                 <div class="bg-gray-50 p-4 rounded-lg mb-6">
@@ -62,20 +65,20 @@
                 <!-- Customer Details Form -->
                 <form @submit.prevent="submitOrder" class="space-y-4">
                     <div>
-                        <label class="block text-gray-700 font-medium mb-2">First Name *</label>
-                        <input v-model="customerDetails.firstName" type="text" required
+                        <label for="checkout-firstName" class="block text-gray-700 font-medium mb-2">First Name *</label>
+                        <input id="checkout-firstName" v-model="customerDetails.firstName" type="text" required
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
 
                     <div>
-                        <label class="block text-gray-700 font-medium mb-2">Last Name *</label>
-                        <input v-model="customerDetails.lastName" type="text" required
+                        <label for="checkout-lastName" class="block text-gray-700 font-medium mb-2">Last Name *</label>
+                        <input id="checkout-lastName" v-model="customerDetails.lastName" type="text" required
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
 
                     <div>
-                        <label class="block text-gray-700 font-medium mb-2">Country *</label>
-                        <select v-model="customerDetails.country" required
+                        <label for="checkout-country" class="block text-gray-700 font-medium mb-2">Country *</label>
+                        <select id="checkout-country" v-model="customerDetails.country" required
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                             <option value="">Select Country</option>
                             <option v-for="country in countries" :key="country" :value="country">{{ country }}</option>
@@ -83,20 +86,20 @@
                     </div>
 
                     <div>
-                        <label class="block text-gray-700 font-medium mb-2">Address *</label>
-                        <textarea v-model="customerDetails.address" required rows="3"
+                        <label for="checkout-address" class="block text-gray-700 font-medium mb-2">Address *</label>
+                        <textarea id="checkout-address" v-model="customerDetails.address" required rows="3"
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
                     </div>
 
                     <div>
-                        <label class="block text-gray-700 font-medium mb-2">Phone Number *</label>
-                        <input v-model="customerDetails.phoneNumber" type="tel" required
+                        <label for="checkout-phoneNumber" class="block text-gray-700 font-medium mb-2">Phone Number *</label>
+                        <input id="checkout-phoneNumber" v-model="customerDetails.phoneNumber" type="tel" required
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
 
                     <div>
-                        <label class="block text-gray-700 font-medium mb-2">Email Address *</label>
-                        <input v-model="customerDetails.emailAddress" type="email" required
+                        <label for="checkout-emailAddress" class="block text-gray-700 font-medium mb-2">Email Address *</label>
+                        <input id="checkout-emailAddress" v-model="customerDetails.emailAddress" type="email" required
                             class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
 
@@ -120,10 +123,11 @@
         <div v-if="showImageModal"
             class="fixed inset-0 bg-black bg-opacity-90 flex items-center justify-center z-50 p-4"
             @click="closeImageModal">
-            <div class="relative max-w-4xl max-h-[90vh] w-full h-full flex items-center justify-center">
-                <button @click="closeImageModal"
+            <div ref="imageDialog" role="dialog" aria-modal="true" aria-labelledby="image-dialog-title" tabindex="-1"
+                class="relative max-w-4xl max-h-[90vh] w-full h-full flex items-center justify-center focus:outline-none">
+                <button type="button" @click="closeImageModal" aria-label="Close photo"
                     class="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors z-10">
-                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12">
                         </path>
                     </svg>
@@ -131,7 +135,7 @@
                 <img :src="selectedImage.image" :alt="selectedImage.name"
                     class="max-w-full max-h-full object-contain rounded-lg shadow-2xl" @click.stop>
                 <div class="absolute bottom-4 left-4 text-white bg-black bg-opacity-50 px-4 py-2 rounded-lg">
-                    <h3 class="font-bold text-lg">{{ selectedImage.name }}</h3>
+                    <h3 id="image-dialog-title" class="font-bold text-lg">{{ selectedImage.name }}</h3>
                     <p class="text-sm">{{ selectedImage.storage }} Storage - {{ selectedImage.price }}</p>
                 </div>
             </div>
@@ -164,6 +168,7 @@
 
 <script setup>
 import { ref, reactive } from 'vue';
+import { useDialog } from '@/Shared/useDialog';
 import emailjs from '@emailjs/browser';
 import quest3s from '@/assets/images/marketplace/quest3s.webp';
 import quest3 from '@/assets/images/marketplace/quest3.jpg';
@@ -222,6 +227,12 @@ const selectedProduct = ref({});
 // Image modal state
 const showImageModal = ref(false);
 const selectedImage = ref({});
+
+// Popups: Escape closes, focus moves in on open and back to the button on close
+const checkoutDialog = ref(null);
+const imageDialog = ref(null);
+useDialog(showCheckoutModal, checkoutDialog, () => closeCheckout());
+useDialog(showImageModal, imageDialog, () => closeImageModal());
 
 // Email notifications
 const showConfirmation = ref(false);

@@ -2,6 +2,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { listPartnerStaff, createPartnerStaff, updatePartnerStaff, togglePartnerStaffActive } from '@/services/partnerStaffService'
 import { toast } from 'vue-sonner'
+import { useConfirm } from '@/composables/useConfirm'
+
+const { confirm } = useConfirm()
 
 defineOptions({ name: 'PartnerStaffList' })
 
@@ -74,6 +77,14 @@ async function handleEdit() {
 
 async function handleToggle(person) {
   const newState = !person.is_active
+  if (!newState) {
+    const ok = await confirm({
+      title: `Deactivate ${person.full_name}?`,
+      message: "They'll no longer appear when staff log sessions. You can reactivate them any time.",
+      confirmLabel: 'Deactivate',
+    })
+    if (!ok) return
+  }
   try {
     await togglePartnerStaffActive(person.id, newState)
     person.is_active = newState
@@ -166,7 +177,7 @@ onMounted(loadStaff)
             <button
               @click="handleToggle(person)"
               :class="[
-                'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
+                'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors tap-target',
                 person.is_active ? 'bg-green-500' : 'bg-gray-300',
               ]"
             >

@@ -95,6 +95,7 @@ onMounted(() => {
           id="amount"
           v-model.number="form.amount"
           type="number"
+          inputmode="decimal"
           required
           min="0"
           step="1"

@@ -7,6 +7,8 @@ import { formatHours } from '@/utils/format'
 import { periodRange } from '@/utils/date'
 import { hourlyRateFrom, overtimePay } from '@/utils/payroll'
 import { toast } from 'vue-sonner'
+import { downloadCsv } from '@/utils/csv'
+import ExportCsvButton from '@/components/admin/ExportCsvButton.vue'
 
 defineOptions({ name: 'EmployeeHours' })
 
@@ -19,6 +21,17 @@ const filterEmployee = ref('')
 const filterPeriod = ref('week') // 'week', 'month', 'custom'
 const filterStartDate = ref('')
 const filterEndDate = ref('')
+
+const totals = computed(() =>
+  summary.value.reduce(
+    (a, e) => ({
+      totalHours: a.totalHours + e.totalHours,
+      overtimeHours: a.overtimeHours + e.overtimeHours,
+      totalPay: a.totalPay + e.totalPay,
+    }),
+    { totalHours: 0, overtimeHours: 0, totalPay: 0 }
+  )
+)
 
 function getDateRange() {
   return periodRange(filterPeriod.value, { start: filterStartDate.value, end: filterEndDate.value })
@@ -57,6 +70,20 @@ const summary = computed(() => {
     .sort((a, b) => b.totalHours - a.totalHours)
 })
 
+function exportCsv() {
+  const { startDate, endDate } = getDateRange()
+  const columns = [
+    { label: 'Employee', value: (e) => e.name },
+    { label: 'Days', value: (e) => e.days },
+    { label: 'Hours', value: (e) => Number(e.totalHours.toFixed(2)) },
+    { label: 'Overtime hours', value: (e) => Number(e.overtimeHours.toFixed(2)) },
+    ...(includesSalary.value ? [{ label: 'Salary (KES)', value: (e) => e.salary }] : []),
+    { label: 'Overtime pay (KES)', value: (e) => e.overtimePay },
+    { label: 'Total pay (KES)', value: (e) => e.totalPay },
+  ]
+  downloadCsv(`employee-hours-${startDate || 'start'}-to-${endDate || 'today'}.csv`, summary.value, columns)
+}
+
 async function loadData() {
   loading.value = true
   try {
@@ -90,7 +117,10 @@ onMounted(loadData)
 
 <template>
   <div>
-    <h1 class="text-2xl font-header font-bold text-gray-900 mb-6">Employee Hours</h1>
+    <div class="flex items-center justify-between gap-3 mb-6">
+      <h1 class="text-2xl font-header font-bold text-gray-900">Employee Hours</h1>
+      <ExportCsvButton :disabled="loading || !summary.length" @click="exportCsv" />
+    </div>
 
     <!-- Filters -->
     <div class="bg-white rounded-xl shadow-soft p-4 mb-4 space-y-3 md:space-y-0 md:flex md:items-end md:gap-4">
@@ -165,6 +195,22 @@ onMounted(loadData)
     <p v-if="!includesSalary" class="text-xs text-gray-400 mb-3">
       Salary is monthly, so it's only included in the Month and Last Month views. Pay below is overtime only.
     </p>
+    <!-- Mobile: totals -->
+    <div class="md:hidden bg-purple text-white rounded-xl p-4 mb-3 grid grid-cols-3 gap-2 text-center">
+      <div>
+        <p class="text-xs text-purple-200">Hours</p>
+        <p class="text-base font-bold">{{ formatHours(totals.totalHours) }}</p>
+      </div>
+      <div>
+        <p class="text-xs text-purple-200">Overtime</p>
+        <p class="text-base font-bold">{{ formatHours(totals.overtimeHours) }}</p>
+      </div>
+      <div>
+        <p class="text-xs text-purple-200">Total pay</p>
+        <p class="text-base font-bold">{{ totals.totalPay.toLocaleString('en-KE') }}</p>
+      </div>
+    </div>
+
     <!-- Mobile: Cards -->
     <div class="md:hidden space-y-3">
       <div

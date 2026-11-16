@@ -4,6 +4,8 @@ import { getSessionsByDate } from '@/services/sessionService'
 import { toast } from 'vue-sonner'
 import { formatPrice, formatTime } from '@/utils/format'
 import { todayEAT } from '@/utils/date'
+import { downloadCsv } from '@/utils/csv'
+import ExportCsvButton from '@/components/admin/ExportCsvButton.vue'
 
 defineOptions({ name: 'SessionHistory' })
 
@@ -44,6 +46,19 @@ const filteredSessions = computed(() => {
 const totalSessions = () => filteredSessions.value.reduce((a, s) => a + s.session_count, 0)
 const totalRevenue = () => filteredSessions.value.reduce((a, s) => a + Number(s.total_amount), 0)
 
+function exportCsv() {
+  downloadCsv(`sessions-${filterDate.value}.csv`, filteredSessions.value, [
+    { label: 'Date', value: (s) => s.date },
+    { label: 'Time (EAT)', value: (s) => formatTime(s.created_at) },
+    { label: 'Machine', value: (s) => s.machines?.name || '' },
+    { label: 'Sessions', value: (s) => s.session_count },
+    { label: 'Price per session (KES)', value: (s) => Number(s.price_per_session) },
+    { label: 'Total (KES)', value: (s) => Number(s.total_amount) },
+    { label: 'Logged by', value: (s) => s.profiles?.full_name || '' },
+    { label: 'Served by (partner staff)', value: (s) => s.partner_staff?.full_name || '' },
+  ])
+}
+
 onMounted(loadSessions)
 </script>
 
@@ -52,6 +67,7 @@ onMounted(loadSessions)
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
       <h1 class="text-2xl font-header font-bold text-gray-900">Session History</h1>
       <div class="flex flex-col sm:flex-row gap-2">
+        <ExportCsvButton :disabled="loading || !filteredSessions.length" @click="exportCsv" />
         <input
           v-model="filterDate"
           type="date"

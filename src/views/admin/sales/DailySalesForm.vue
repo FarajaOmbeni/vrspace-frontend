@@ -187,6 +187,7 @@ onMounted(() => {
               id="partnerRevenue"
               v-model.number="partnerRevenue"
               type="number"
+              inputmode="decimal"
               min="0"
               step="0.01"
               placeholder="Enter partner's total"

@@ -2,8 +2,10 @@
 import { ref, computed, onMounted } from 'vue'
 import { getFinanceReport } from '@/services/financeService'
 import { toast } from 'vue-sonner'
+import { downloadCsv } from '@/utils/csv'
+import ExportCsvButton from '@/components/admin/ExportCsvButton.vue'
 import { formatPrice, formatInstantDate } from '@/utils/format'
-import { monthStartOf } from '@/utils/date'
+import { monthStartOf, toDateStr } from '@/utils/date'
 
 defineOptions({ name: 'FinanceReport' })
 
@@ -131,6 +133,17 @@ const filteredTotal = computed(() => {
 })
 const totalLabel = computed(() => (filter.value === 'all' ? 'Profit / loss (write-offs not deducted)' : 'Total'))
 
+function exportCsv() {
+  const isExpense = (t) => !isIncomeType(t)
+  downloadCsv(`finance-${startMonth.value.slice(0, 7)}-to-${endMonth.value.slice(0, 7)}-${filter.value}.csv`, filteredItems.value, [
+    { label: 'Date', value: (i) => (i.date.length > 10 ? toDateStr(i.date) : i.date) }, // timestamps → EAT date
+    { label: 'Type', value: (i) => typeLabel(i.type) },
+    { label: 'Description', value: (i) => i.description },
+    { label: 'Income (KES)', value: (i) => (isExpense(i.type) ? '' : i.amount) },
+    { label: 'Expense (KES)', value: (i) => (isExpense(i.type) ? i.amount : '') },
+  ])
+}
+
 function typeLabel(type) {
   const labels = {
     vr_revenue: 'VR Revenue',
@@ -188,7 +201,10 @@ onMounted(loadReport)
 
 <template>
   <div>
-    <h1 class="text-2xl font-header font-bold text-gray-900 mb-1">Finance Report</h1>
+    <div class="flex items-center justify-between gap-3 mb-1">
+      <h1 class="text-2xl font-header font-bold text-gray-900">Finance Report</h1>
+      <ExportCsvButton :disabled="loading || !filteredItems.length" @click="exportCsv" />
+    </div>
     <p class="text-sm text-gray-500 mb-6">Overview across months</p>
 
     <!-- Date range -->

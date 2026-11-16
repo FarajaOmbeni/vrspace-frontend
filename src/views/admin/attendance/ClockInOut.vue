@@ -11,8 +11,8 @@ import { toast } from 'vue-sonner'
 
 defineOptions({ name: 'ClockInOut' })
 
-const { user, profile, isAdmin } = useAuth()
-const { position, error: geoError, loading: geoLoading, getPosition, isWithinRadius } = useGeolocation()
+const { user, profile } = useAuth()
+const { error: geoError, loading: geoLoading, getPosition, isWithinRadius } = useGeolocation()
 
 const record = ref(null)
 const shopLocation = ref(null)

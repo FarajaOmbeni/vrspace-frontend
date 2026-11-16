@@ -15,7 +15,7 @@
             Get Directions
           </a>
           <a :href="business.whatsapp.url" target="_blank" rel="noopener noreferrer"
-            class="inline-block text-white bg-[#25D366] py-3 sm:py-4 px-6 sm:px-10 rounded-full text-lg sm:text-xl font-bold transition-all duration-300 hover:shadow-lg hover:opacity-90">
+            class="inline-block text-blue bg-[#25D366] py-3 sm:py-4 px-6 sm:px-10 rounded-full text-lg sm:text-xl font-bold transition-all duration-300 hover:shadow-lg hover:opacity-90">
             WhatsApp Us
           </a>
         </div>

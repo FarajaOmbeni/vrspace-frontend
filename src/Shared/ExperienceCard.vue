@@ -1,6 +1,9 @@
 <template>
-  <div class="flex flex-col items-center lg:flex-row justify-center xl:gap-32 mb-32 md:gap-14">
-    <div class="w-full max-w-[25rem] xl:max-w-[30rem] lg:block my-auto"><img :src="image_link" :alt="title" loading="lazy">
+  <div
+    class="flex flex-col items-center justify-center xl:gap-32 mb-32 md:gap-14"
+    :class="reverse ? 'lg:flex-row-reverse' : 'lg:flex-row'"
+  >
+    <div class="w-full max-w-[25rem] xl:max-w-[30rem] my-auto"><img :src="image_link" :alt="title" loading="lazy">
     </div>
     <div
       class="lg:w-1/2 mx-4 sm:mx-8 text-justify lg:text-start flex flex-col items-center w-[27rem] max-w-[calc(100%-2rem)] lg:max-w-none lg:w-[20rem] lg:justify-center lg:items-start bg-purple rounded-2xl">
@@ -19,20 +22,15 @@
       </div>
 
       <ul class="py-5 pr-3 list-disc pl-12">
-        <li class="text-lg">{{ description }}</li>
-        <li class="text-lg">{{ d1 }}</li>
-        <li class="text-lg">{{ d2 }}</li>
-        <li class="text-lg">{{ d3 }}</li>
-        <li class="text-lg">{{ d4 }}</li>
+        <li v-for="point in points" :key="point" class="text-lg">{{ point }}</li>
       </ul>
     </div>
   </div>
 </template>
 
 <script setup>
-// Component name definition
 defineOptions({
-  name: 'ExperienceOddSection'
+  name: 'ExperienceCard'
 });
 
 defineProps({
@@ -42,10 +40,9 @@ defineProps({
   player: String,
   time: String,
   price: String,
-  description: String,
-  d1: String,
-  d2: String,
-  d3: String,
-  d4: String,
+  // Bullet points, first one is the short description.
+  points: { type: Array, default: () => [] },
+  // Image on the right on desktop (always on top on mobile).
+  reverse: Boolean,
 });
 </script>

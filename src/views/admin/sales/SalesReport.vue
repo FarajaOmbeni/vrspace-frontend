@@ -5,6 +5,8 @@ import { formatPrice } from '@/utils/format'
 import { periodRange } from '@/utils/date'
 import { effectiveGross, ourShare, partnerShare, partnerDifference } from '@/utils/finance'
 import { toast } from 'vue-sonner'
+import { downloadCsv } from '@/utils/csv'
+import ExportCsvButton from '@/components/admin/ExportCsvButton.vue'
 
 defineOptions({ name: 'SalesReport' })
 
@@ -43,6 +45,29 @@ const totalDiscrepancy = computed(() => records.value.reduce((a, r) => {
   return a
 }, 0))
 
+function discrepancyStatus(r) {
+  if (r.partner_reported_revenue == null) return 'Not reported'
+  if (!r.discrepancy) return 'Match'
+  if (r.discrepancy_resolved) return `Resolved (${r.resolved_with === 'ours' ? 'our records' : 'partner figure'})`
+  return 'Open'
+}
+
+function exportCsv() {
+  const { startDate, endDate } = getDateRange()
+  downloadCsv(`sales-${startDate || 'start'}-to-${endDate || 'today'}.csv`, records.value, [
+    { label: 'Date', value: (r) => r.date },
+    { label: 'Sessions', value: (r) => r.total_sessions },
+    { label: 'Our records (KES)', value: (r) => Number(r.total_revenue) },
+    { label: 'Partner reported (KES)', value: (r) => (r.partner_reported_revenue == null ? '' : Number(r.partner_reported_revenue)) },
+    { label: 'Partner minus ours (KES)', value: (r) => partnerDifference(r) ?? '' },
+    { label: 'Status', value: discrepancyStatus },
+    { label: 'Revenue counted (KES)', value: getRevenue },
+    { label: 'Our share (KES)', value: (r) => rowOurShare(r) ?? '' },
+    { label: 'Partner share (KES)', value: (r) => rowPartnerShare(r) ?? '' },
+    { label: 'Notes', value: (r) => r.notes || '' },
+  ])
+}
+
 async function loadData() {
   loading.value = true
   try {
@@ -64,7 +89,10 @@ onMounted(loadData)
 
 <template>
   <div>
-    <h1 class="text-2xl font-header font-bold text-gray-900 mb-6">Sales Reports</h1>
+    <div class="flex items-center justify-between gap-3 mb-6">
+      <h1 class="text-2xl font-header font-bold text-gray-900">Sales Reports</h1>
+      <ExportCsvButton :disabled="loading || !records.length" @click="exportCsv" />
+    </div>
 
     <!-- Filters -->
     <div class="bg-white rounded-xl shadow-soft p-4 mb-4 space-y-3 md:space-y-0 md:flex md:items-end md:gap-4">

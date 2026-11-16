@@ -194,6 +194,7 @@ onMounted(loadSettings)
             id="radius"
             v-model.number="form.radius_meters"
             type="number"
+            inputmode="numeric"
             min="10"
             max="5000"
             step="10"
@@ -250,6 +251,7 @@ onMounted(loadSettings)
             id="hourlyRate"
             v-model.number="hoursForm.hourly_rate"
             type="number"
+            inputmode="decimal"
             min="0"
             step="50"
             required

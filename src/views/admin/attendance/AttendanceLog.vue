@@ -7,6 +7,8 @@ import { formatHoursOrDash as formatHours, formatTime } from '@/utils/format'
 import { todayEAT, zonedParts, zonedTimeToDate } from '@/utils/date'
 import { isLateClockIn, closingTimeOn } from '@/utils/payroll'
 import { toast } from 'vue-sonner'
+import { downloadCsv } from '@/utils/csv'
+import ExportCsvButton from '@/components/admin/ExportCsvButton.vue'
 
 defineOptions({ name: 'AttendanceLog' })
 
@@ -159,6 +161,19 @@ function clearFilters() {
   loadData()
 }
 
+function exportCsv() {
+  const range = [filterStartDate.value, filterEndDate.value].filter(Boolean).join('-to-') || 'all'
+  downloadCsv(`attendance-${range}.csv`, records.value, [
+    { label: 'Date', value: (r) => r.date },
+    { label: 'Employee', value: (r) => r.profiles?.full_name || '' },
+    { label: 'Clock in (EAT)', value: (r) => formatTime(r.clock_in) },
+    { label: 'Clock out (EAT)', value: (r) => (r.clock_out ? formatTime(r.clock_out) : 'Not clocked out') },
+    { label: 'Hours', value: (r) => (r.total_hours == null ? '' : Number(Number(r.total_hours).toFixed(2))) },
+    { label: 'Overtime hours', value: (r) => (r.overtime_hours == null ? '' : Number(Number(r.overtime_hours).toFixed(2))) },
+    { label: 'Late', value: (r) => (isLate(r.clock_in) ? 'Yes' : 'No') },
+  ])
+}
+
 onMounted(loadData)
 </script>
 
@@ -166,12 +181,15 @@ onMounted(loadData)
   <div>
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
       <h1 class="text-2xl font-header font-bold text-gray-900">Attendance Log</h1>
+      <div class="flex flex-col sm:flex-row gap-2">
+      <ExportCsvButton :disabled="loading || !records.length" @click="exportCsv" />
       <button
         @click="showManualClock = !showManualClock"
         class="bg-purple text-white font-semibold px-5 py-2.5 rounded-xl text-sm hover:bg-purple-700 transition-colors w-full sm:w-auto"
       >
         + Manual Clock In
       </button>
+      </div>
     </div>
 
     <!-- Manual clock in panel -->

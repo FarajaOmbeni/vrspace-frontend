@@ -1,5 +1,5 @@
 <template>
-  <nav class="bg-blue fixed w-full z-50 shadow-md transition-all duration-300">
+  <nav ref="navEl" class="bg-blue fixed w-full z-50 shadow-md transition-all duration-300">
     <div class="container mx-auto px-4 py-3">
       <div class="flex justify-between items-center">
         <!-- Logo -->
@@ -11,9 +11,10 @@
         </RouterLink>
 
         <!-- Mobile Menu Button -->
-        <button @click="toggleMenu" class="md:hidden flex items-center text-white focus:outline-none"
-          aria-label="Toggle navigation menu">
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <button ref="menuButton" type="button" @click="toggleMenu"
+          class="md:hidden flex items-center text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-pink rounded"
+          aria-label="Toggle navigation menu" :aria-expanded="isMenuOpen ? 'true' : 'false'" aria-controls="mobile-menu">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
             <path v-if="isMenuOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M6 18L18 6M6 6l12 12" />
             <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
@@ -28,7 +29,7 @@
           <NavLink to="/marketplace" :class="{ 'active': route.path === '/marketplace' }">Marketplace</NavLink>
           <NavLink to="/contact" :class="{ 'active': route.path === '/contact' }">Contact</NavLink>
           <a :href="business.mapsUrl" target="_blank" rel="noopener noreferrer"
-            class="ml-2 bg-pink text-white py-2 px-4 rounded-full font-bold transition-all duration-300 hover:opacity-90 hover:shadow-md">
+            class="ml-2 bg-pink text-blue py-2 px-4 rounded-full font-bold transition-all duration-300 hover:opacity-90 hover:shadow-md">
             Get Directions
           </a>
         </div>
@@ -36,7 +37,7 @@
     </div>
 
     <!-- Mobile Navigation Menu -->
-    <div v-show="isMenuOpen"
+    <div id="mobile-menu" v-show="isMenuOpen"
       class="md:hidden bg-blue text-white py-4 px-4 shadow-lg transform transition-all duration-300">
       <div class="flex flex-col space-y-4">
         <NavLink to="/" :class="{ 'active': route.path === '/' }" @click="closeMenu">Home</NavLink>
@@ -47,7 +48,7 @@
         </NavLink>
         <NavLink to="/contact" :class="{ 'active': route.path === '/contact' }" @click="closeMenu">Contact</NavLink>
         <a :href="business.mapsUrl" target="_blank" rel="noopener noreferrer" @click="closeMenu"
-          class="text-center bg-pink text-white py-2 px-4 rounded-full font-bold transition-all duration-300 hover:opacity-90 hover:shadow-md">
+          class="text-center bg-pink text-blue py-2 px-4 rounded-full font-bold transition-all duration-300 hover:opacity-90 hover:shadow-md">
           Get Directions
         </a>
       </div>
@@ -69,6 +70,8 @@ defineOptions({
 
 const route = useRoute();
 const isMenuOpen = ref(false);
+const menuButton = ref(null);
+const navEl = ref(null);
 
 const toggleMenu = () => {
   isMenuOpen.value = !isMenuOpen.value;
@@ -85,10 +88,18 @@ const handleResize = () => {
   }
 };
 
-// Close menu when clicking outside
+// Close menu with Escape and give focus back to the menu button
+const handleKeydown = (event) => {
+  if (event.key === 'Escape' && isMenuOpen.value) {
+    isMenuOpen.value = false;
+    menuButton.value?.focus();
+  }
+};
+
+// Close menu when clicking outside. composedPath() is used because the tapped
+// icon <path> is swapped out on toggle, so event.target may already be detached.
 const handleClickOutside = (event) => {
-  const nav = document.querySelector('nav');
-  if (isMenuOpen.value && nav && !nav.contains(event.target)) {
+  if (isMenuOpen.value && navEl.value && !event.composedPath().includes(navEl.value)) {
     isMenuOpen.value = false;
   }
 };
@@ -96,11 +107,13 @@ const handleClickOutside = (event) => {
 onMounted(() => {
   window.addEventListener('resize', handleResize);
   document.addEventListener('click', handleClickOutside);
+  document.addEventListener('keydown', handleKeydown);
 });
 
 onUnmounted(() => {
   window.removeEventListener('resize', handleResize);
   document.removeEventListener('click', handleClickOutside);
+  document.removeEventListener('keydown', handleKeydown);
 });
 </script>
 

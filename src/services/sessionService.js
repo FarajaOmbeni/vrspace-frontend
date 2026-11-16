@@ -2,24 +2,37 @@ import { supabase } from '@/lib/supabase'
 import { todayEAT } from '@/utils/date'
 import { fetchAll } from '@/lib/fetchAll'
 
-export async function logSession({ employeeId, machineId, sessionCount, pricePerSession, partnerStaffId }) {
-  const { data, error } = await supabase
+/**
+ * Inserts a session. Pass a client-generated `id` so a retry of the same
+ * session fails as a duplicate (see isDuplicateError) instead of double-counting.
+ */
+export async function insertSession({ id, employeeId, machineId, sessionCount, pricePerSession, partnerStaffId }) {
+  const { error } = await supabase
     .from('sessions')
     .insert({
+      ...(id ? { id } : {}),
       employee_id: employeeId,
       machine_id: machineId,
       session_count: sessionCount,
       price_per_session: pricePerSession,
       partner_staff_id: partnerStaffId || null,
     })
-    .select('*, machines:machine_id(name)')
-    .single()
 
   if (error) throw error
-  return data
 }
 
-export async function getTodaySessions(employeeId) {
+/** True when a request failed because there's no connection (not a server refusal). */
+export function isNetworkError(error) {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return true
+  return !error?.code && /fetch|network|load failed|timed? ?out/i.test(error?.message || '')
+}
+
+/** True when the row already exists (Postgres unique violation). */
+export function isDuplicateError(error) {
+  return error?.code === '23505'
+}
+
+export async function getTodaySessions() {
   const today = todayEAT()
 
   let query = supabase

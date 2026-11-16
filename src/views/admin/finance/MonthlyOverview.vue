@@ -12,6 +12,7 @@ import { formatPrice, formatInstantDate } from '@/utils/format'
 import { monthStartOf } from '@/utils/date'
 import { financeTotals } from '@/utils/finance'
 import { toast } from 'vue-sonner'
+import { useConfirm } from '@/composables/useConfirm'
 
 defineOptions({ name: 'MonthlyOverview' })
 
@@ -32,7 +33,12 @@ const closing = ref(false)
 const showCloseConfirm = ref(false)
 const preparingClose = ref(false)
 const salariesChanged = ref(0)
-const editingExpenseId = ref(null)
+// Tap-to-edit amount sheet
+const editingExpense = ref(null)
+const editAmount = ref('')
+const editError = ref('')
+const savingAmount = ref(false)
+const { confirm } = useConfirm()
 
 /** Calendar-year cumulative through selected month (from getCumulativeFinanceThroughMonth). */
 const cumulative = ref(null)
@@ -128,18 +134,43 @@ async function handlePopulate() {
   }
 }
 
-async function handleUpdateAmount(expense, newAmount) {
-  editingExpenseId.value = null
+function openAmountEditor(expense) {
+  if (!isAdmin.value || isClosed.value) return
+  editingExpense.value = expense
+  editAmount.value = String(Number(expense.amount))
+  editError.value = ''
+}
+
+async function saveAmount() {
+  const expense = editingExpense.value
+  const raw = String(editAmount.value).trim()
+  const newAmount = Number(raw)
+  if (raw === '' || Number.isNaN(newAmount) || newAmount < 0) {
+    editError.value = 'Enter an amount of 0 or more'
+    return
+  }
+  savingAmount.value = true
   try {
     await updateExpense(expense.id, { amount: newAmount })
     expense.amount = newAmount
+    editingExpense.value = null
     await refreshCumulative()
+    toast.success('Amount updated')
   } catch (e) {
-    toast.error(e.message || 'Failed to update')
+    editError.value = e.message || 'Failed to update'
+  } finally {
+    savingAmount.value = false
   }
 }
 
 async function handleDeleteExpense(id) {
+  const exp = expenses.value.find((e) => e.id === id)
+  const ok = await confirm({
+    title: 'Delete this expense?',
+    message: exp ? `${exp.description} — ${formatPrice(exp.amount)} KES` : '',
+    confirmLabel: 'Delete',
+  })
+  if (!ok) return
   try {
     await deleteExpense(id)
     expenses.value = expenses.value.filter((e) => e.id !== id)
@@ -151,6 +182,13 @@ async function handleDeleteExpense(id) {
 }
 
 async function handleDeleteIncome(id) {
+  const inc = income.value.find((i) => i.id === id)
+  const ok = await confirm({
+    title: 'Delete this income?',
+    message: inc ? `${inc.description} — ${formatPrice(inc.amount)} KES` : '',
+    confirmLabel: 'Delete',
+  })
+  if (!ok) return
   try {
     await deleteAdditionalIncome(id)
     income.value = income.value.filter((i) => i.id !== id)
@@ -194,6 +232,12 @@ async function handleCloseMonth() {
 }
 
 async function handleReopenMonth() {
+  const ok = await confirm({
+    title: `Reopen ${monthLabel.value}?`,
+    message: 'Expenses and income for this month become editable again, and the month will need closing again.',
+    confirmLabel: 'Reopen',
+  })
+  if (!ok) return
   try {
     await reopenMonth(currentMonth.value)
     await loadData()
@@ -311,9 +355,9 @@ onMounted(loadData)
               <template v-if="!isClosed">
                 <button
                   @click="router.push({ path: `/admin/finance/income/${inc.id}/edit`, query: { month: currentMonth } })"
-                  class="text-xs text-purple hover:underline"
+                  class="min-h-[40px] px-3 rounded-lg text-sm font-medium text-purple bg-purple-50 hover:bg-purple-100"
                 >Edit</button>
-                <button @click="handleDeleteIncome(inc.id)" class="text-xs text-red-500 hover:underline">Del</button>
+                <button @click="handleDeleteIncome(inc.id)" class="min-h-[40px] px-3 rounded-lg text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100">Delete</button>
               </template>
             </div>
           </div>
@@ -345,23 +389,17 @@ onMounted(loadData)
               class="flex items-center justify-between px-4 py-3 border-b border-gray-100 last:border-0"
             >
               <p class="text-sm text-gray-900">{{ exp.description }}</p>
-              <input
-                v-if="editingExpenseId === exp.id"
-                type="number"
-                :value="exp.amount"
-                min="0"
-                step="100"
-                @blur="handleUpdateAmount(exp, Number($event.target.value))"
-                @keyup.enter="$event.target.blur()"
-                @vue:mounted="$event.el.focus(); $event.el.select()"
-                class="w-28 text-right rounded-lg border-gray-300 text-sm py-1 px-2 focus:border-purple-500 focus:ring-purple-500"
-              />
-              <p
-                v-else
-                class="text-sm font-semibold text-gray-900"
-                :class="{ 'cursor-pointer hover:text-purple': isAdmin && !isClosed }"
-                @dblclick="isAdmin && !isClosed && (editingExpenseId = exp.id)"
-              >{{ formatPrice(exp.amount) }} KES</p>
+              <button
+                v-if="isAdmin && !isClosed"
+                type="button"
+                @click="openAmountEditor(exp)"
+                class="min-h-[44px] -my-2 -mr-2 px-2 flex items-center gap-1.5 rounded-lg text-sm font-semibold text-gray-900 hover:bg-purple-50 hover:text-purple"
+                :aria-label="`Edit amount for ${exp.description}`"
+              >
+                {{ formatPrice(exp.amount) }} KES
+                <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              </button>
+              <p v-else class="text-sm font-semibold text-gray-900">{{ formatPrice(exp.amount) }} KES</p>
             </div>
           </div>
         </div>
@@ -376,23 +414,17 @@ onMounted(loadData)
               class="flex items-center justify-between px-4 py-3 border-b border-gray-100 last:border-0"
             >
               <p class="text-sm text-gray-900">{{ exp.description }}</p>
-              <input
-                v-if="editingExpenseId === exp.id"
-                type="number"
-                :value="exp.amount"
-                min="0"
-                step="100"
-                @blur="handleUpdateAmount(exp, Number($event.target.value))"
-                @keyup.enter="$event.target.blur()"
-                @vue:mounted="$event.el.focus(); $event.el.select()"
-                class="w-28 text-right rounded-lg border-gray-300 text-sm py-1 px-2 focus:border-purple-500 focus:ring-purple-500"
-              />
-              <p
-                v-else
-                class="text-sm font-semibold text-gray-900"
-                :class="{ 'cursor-pointer hover:text-purple': isAdmin && !isClosed }"
-                @dblclick="isAdmin && !isClosed && (editingExpenseId = exp.id)"
-              >{{ formatPrice(exp.amount) }} KES</p>
+              <button
+                v-if="isAdmin && !isClosed"
+                type="button"
+                @click="openAmountEditor(exp)"
+                class="min-h-[44px] -my-2 -mr-2 px-2 flex items-center gap-1.5 rounded-lg text-sm font-semibold text-gray-900 hover:bg-purple-50 hover:text-purple"
+                :aria-label="`Edit amount for ${exp.description}`"
+              >
+                {{ formatPrice(exp.amount) }} KES
+                <svg class="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+              </button>
+              <p v-else class="text-sm font-semibold text-gray-900">{{ formatPrice(exp.amount) }} KES</p>
             </div>
           </div>
         </div>
@@ -417,9 +449,9 @@ onMounted(loadData)
                 <template v-if="!isClosed">
                   <button
                     @click="router.push({ path: `/admin/finance/expense/${exp.id}/edit`, query: { month: currentMonth } })"
-                    class="text-xs text-purple hover:underline"
+                    class="min-h-[40px] px-3 rounded-lg text-sm font-medium text-purple bg-purple-50 hover:bg-purple-100"
                   >Edit</button>
-                  <button @click="handleDeleteExpense(exp.id)" class="text-xs text-red-500 hover:underline">Del</button>
+                  <button @click="handleDeleteExpense(exp.id)" class="min-h-[40px] px-3 rounded-lg text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100">Delete</button>
                 </template>
               </div>
             </div>
@@ -471,9 +503,9 @@ onMounted(loadData)
                 <template v-if="!isClosed">
                   <button
                     @click="router.push({ path: `/admin/finance/expense/${exp.id}/edit`, query: { month: currentMonth, type: 'write_off' } })"
-                    class="text-xs text-purple hover:underline"
+                    class="min-h-[40px] px-3 rounded-lg text-sm font-medium text-purple bg-purple-50 hover:bg-purple-100"
                   >Edit</button>
-                  <button @click="handleDeleteExpense(exp.id)" class="text-xs text-red-500 hover:underline">Del</button>
+                  <button @click="handleDeleteExpense(exp.id)" class="min-h-[40px] px-3 rounded-lg text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100">Delete</button>
                 </template>
               </div>
             </div>
@@ -539,5 +571,44 @@ onMounted(loadData)
         </div>
       </transition>
     </teleport>
+
+    <!-- Edit amount sheet -->
+    <Teleport to="body">
+      <div
+        v-if="editingExpense"
+        class="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-4"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="edit-amount-title"
+        @keydown.esc="editingExpense = null"
+      >
+        <div class="absolute inset-0 bg-black/50" @click="editingExpense = null" />
+        <form class="relative bg-white rounded-2xl shadow-strong w-full max-w-sm p-6" @submit.prevent="saveAmount">
+          <h3 id="edit-amount-title" class="text-lg font-bold text-gray-900">Edit amount</h3>
+          <p class="text-sm text-gray-500 mt-1 mb-4">{{ editingExpense.description }}</p>
+          <label for="edit-amount" class="block text-xs font-medium text-gray-500 mb-1">Amount (KES)</label>
+          <input
+            id="edit-amount"
+            v-model="editAmount"
+            type="number"
+            inputmode="decimal"
+            min="0"
+            step="any"
+            autofocus
+            @input="editError = ''"
+            class="w-full rounded-xl border-gray-300 text-2xl font-bold py-3 px-4 focus:border-purple-500 focus:ring-purple-500"
+          />
+          <p v-if="editError" class="text-sm text-red-600 mt-2">{{ editError }}</p>
+          <div class="flex gap-3 mt-6">
+            <button type="button" @click="editingExpense = null" class="flex-1 min-h-[48px] bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200">
+              Cancel
+            </button>
+            <button type="submit" :disabled="savingAmount" class="flex-1 min-h-[48px] bg-purple text-white font-semibold rounded-xl hover:bg-purple-700 disabled:opacity-50">
+              {{ savingAmount ? 'Saving...' : 'Save' }}
+            </button>
+          </div>
+        </form>
+      </div>
+    </Teleport>
   </div>
 </template>

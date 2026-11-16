@@ -173,6 +173,7 @@ onMounted(() => {
           id="price"
           v-model.number="form.price_per_session"
           type="number"
+          inputmode="decimal"
           required
           min="0"
           step="50"
@@ -187,7 +188,7 @@ onMounted(() => {
           type="button"
           @click="form.is_active = !form.is_active"
           :class="[
-            'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
+            'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors tap-target',
             form.is_active ? 'bg-green-500' : 'bg-gray-300',
           ]"
         >
