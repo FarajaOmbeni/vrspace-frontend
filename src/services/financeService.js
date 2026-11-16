@@ -164,26 +164,28 @@ export async function recalculateSalaries(month) {
   return { updated: toUpdate.length, added: toInsert.length }
 }
 
-export async function createOneOffExpense({ month, description, amount }) {
-  const { data, error } = await supabase
-    .from('monthly_expenses')
-    .insert({ month, type: 'one_off', description, amount })
-    .select()
-    .single()
+/**
+ * Saves a new one-off or write-off expense. Pass a client-generated `id` to
+ * make retries safe: saving the same id twice updates the row instead of
+ * creating a duplicate (e.g. when the first response was lost on bad wifi).
+ */
+async function saveNewExpense(type, { id, month, description, amount, receipt_url = null }) {
+  const row = { month, type, description, amount, receipt_url }
+  const query = id
+    ? supabase.from('monthly_expenses').upsert({ id, ...row })
+    : supabase.from('monthly_expenses').insert(row)
 
+  const { data, error } = await query.select().single()
   if (error) throw error
   return data
 }
 
-export async function createWriteOffExpense({ month, description, amount }) {
-  const { data, error } = await supabase
-    .from('monthly_expenses')
-    .insert({ month, type: 'write_off', description, amount })
-    .select()
-    .single()
+export function createOneOffExpense(fields) {
+  return saveNewExpense('one_off', fields)
+}
 
-  if (error) throw error
-  return data
+export function createWriteOffExpense(fields) {
+  return saveNewExpense('write_off', fields)
 }
 
 export async function updateExpense(id, updates) {

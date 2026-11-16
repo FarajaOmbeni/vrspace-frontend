@@ -1,4 +1,5 @@
 import { supabase } from '@/lib/supabase'
+import { fetchAll } from '@/lib/fetchAll'
 
 export async function listPartnerStaff({ activeOnly = false } = {}) {
   let query = supabase
@@ -54,14 +55,15 @@ export async function togglePartnerStaffActive(id, isActive) {
 }
 
 export async function getPartnerStaffReport({ startDate, endDate }) {
-  const { data, error } = await supabase
-    .from('sessions')
-    .select('partner_staff_id, session_count, total_amount, partner_staff:partner_staff_id(full_name), machines:machine_id(name)')
-    .not('partner_staff_id', 'is', null)
-    .gte('date', startDate)
-    .lte('date', endDate)
-
-  if (error) throw error
+  const data = await fetchAll(() =>
+    supabase
+      .from('sessions')
+      .select('partner_staff_id, session_count, total_amount, partner_staff:partner_staff_id(full_name), machines:machine_id(name)', { count: 'exact' })
+      .not('partner_staff_id', 'is', null)
+      .gte('date', startDate)
+      .lte('date', endDate)
+      .order('id')
+  )
 
   // Aggregate by partner staff, then by game
   const map = {}

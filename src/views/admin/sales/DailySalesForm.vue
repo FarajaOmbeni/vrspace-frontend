@@ -96,7 +96,7 @@ function formatDateShort(dateStr) {
 async function loadMissingDates() {
   loadingMissing.value = true
   try {
-    missingDates.value = await getMissingPartnerReports('2026-05-01')
+    missingDates.value = await getMissingPartnerReports()
   } catch (e) {
     // silent fail
   } finally {

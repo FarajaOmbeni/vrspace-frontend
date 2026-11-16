@@ -16,6 +16,8 @@ const form = ref({
   amount: 0,
   receipt_url: null,
 })
+// ID for a new expense, fixed for the life of the form so retries reuse it.
+const newExpenseId = crypto.randomUUID()
 const receiptFile = ref(null)
 const receiptPreview = ref(null)
 const loading = ref(false)
@@ -75,16 +77,17 @@ async function handleSubmit() {
       await updateExpense(route.params.id, form.value)
       toast.success('Expense updated')
     } else {
+      // Upload first, then save the expense in one step: a failed upload
+      // leaves nothing behind, and a retry reuses the same id.
+      const receiptUrl = receiptFile.value ? await uploadReceipt(receiptFile.value, newExpenseId) : null
       const createFn = isWriteOff.value ? createWriteOffExpense : createOneOffExpense
-      const expense = await createFn({
+      await createFn({
+        id: newExpenseId,
         month: month.value,
         description: form.value.description,
         amount: form.value.amount,
+        receipt_url: receiptUrl,
       })
-      if (receiptFile.value) {
-        const url = await uploadReceipt(receiptFile.value, expense.id)
-        await updateExpense(expense.id, { receipt_url: url })
-      }
       toast.success('Expense added')
     }
     router.push({ path: '/admin/finance', query: { month: month.value } })

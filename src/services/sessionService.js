@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import { dbToday } from '@/utils/date'
+import { fetchAll } from '@/lib/fetchAll'
 
 export async function logSession({ employeeId, machineId, sessionCount, pricePerSession, partnerStaffId }) {
   const { data, error } = await supabase
@@ -68,16 +69,16 @@ export async function deleteSession(id) {
 }
 
 export async function getMachineRevenue({ startDate, endDate } = {}) {
-  let query = supabase
-    .from('sessions')
-    .select('machine_id, session_count, total_amount, machines:machine_id(name)')
-    .order('machine_id')
+  const data = await fetchAll(() => {
+    let query = supabase
+      .from('sessions')
+      .select('machine_id, session_count, total_amount, machines:machine_id(name)', { count: 'exact' })
+      .order('id')
 
-  if (startDate) query = query.gte('date', startDate)
-  if (endDate) query = query.lte('date', endDate)
-
-  const { data, error } = await query
-  if (error) throw error
+    if (startDate) query = query.gte('date', startDate)
+    if (endDate) query = query.lte('date', endDate)
+    return query
+  })
 
   const map = {}
   for (const s of data) {

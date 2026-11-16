@@ -90,11 +90,27 @@ export async function getDiscrepancies({ startDate, endDate, showResolved = fals
   return data
 }
 
-export async function getMissingPartnerReports(startDate) {
+/**
+ * Days with sessions but no partner figure yet. Counts from the first day the
+ * partner ever reported (when reconciliation started), so older days from
+ * before then aren't flagged.
+ */
+export async function getMissingPartnerReports() {
+  const { data: first, error: firstError } = await supabase
+    .from('daily_sales')
+    .select('date')
+    .not('partner_reported_revenue', 'is', null)
+    .order('date', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+
+  if (firstError) throw firstError
+  if (!first) return [] // partner has never reported: nothing to chase yet
+
   const { data, error } = await supabase
     .from('daily_sales')
     .select('date')
-    .gte('date', startDate)
+    .gte('date', first.date)
     .is('partner_reported_revenue', null)
     .gt('total_revenue', 0)
     .order('date', { ascending: false })

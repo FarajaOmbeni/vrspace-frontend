@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase'
 import { dbToday } from '@/utils/date'
+import { fetchAll } from '@/lib/fetchAll'
 
 export async function getTodayRecord(employeeId) {
   const today = dbToday()
@@ -63,44 +64,32 @@ export async function clockOut(recordId, clockOutTime = null) {
 }
 
 export async function listAttendance({ employeeId, startDate, endDate } = {}) {
-  let query = supabase
-    .from('attendance')
-    .select('*, profiles:employee_id(full_name, email)')
-    .order('date', { ascending: false })
+  return fetchAll(() => {
+    let query = supabase
+      .from('attendance')
+      .select('*, profiles:employee_id(full_name, email)', { count: 'exact' })
+      .order('date', { ascending: false })
+      .order('id')
 
-  if (employeeId) {
-    query = query.eq('employee_id', employeeId)
-  }
-  if (startDate) {
-    query = query.gte('date', startDate)
-  }
-  if (endDate) {
-    query = query.lte('date', endDate)
-  }
-
-  const { data, error } = await query
-  if (error) throw error
-  return data
+    if (employeeId) query = query.eq('employee_id', employeeId)
+    if (startDate) query = query.gte('date', startDate)
+    if (endDate) query = query.lte('date', endDate)
+    return query
+  })
 }
 
 export async function getEmployeeHours({ employeeId, startDate, endDate } = {}) {
-  let query = supabase
-    .from('attendance')
-    .select('*, profiles:employee_id(full_name, salary)')
-    .not('clock_out', 'is', null)
-    .order('date', { ascending: false })
+  return fetchAll(() => {
+    let query = supabase
+      .from('attendance')
+      .select('*, profiles:employee_id(full_name, salary)', { count: 'exact' })
+      .not('clock_out', 'is', null)
+      .order('date', { ascending: false })
+      .order('id')
 
-  if (employeeId) {
-    query = query.eq('employee_id', employeeId)
-  }
-  if (startDate) {
-    query = query.gte('date', startDate)
-  }
-  if (endDate) {
-    query = query.lte('date', endDate)
-  }
-
-  const { data, error } = await query
-  if (error) throw error
-  return data
+    if (employeeId) query = query.eq('employee_id', employeeId)
+    if (startDate) query = query.gte('date', startDate)
+    if (endDate) query = query.lte('date', endDate)
+    return query
+  })
 }

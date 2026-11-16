@@ -16,6 +16,8 @@ const form = ref({
   is_active: true,
   image_url: null,
 })
+// ID for a new machine, fixed for the life of the form so retries reuse it.
+const newMachineId = crypto.randomUUID()
 const imageFile = ref(null)
 const imagePreview = ref(null)
 const loading = ref(false)
@@ -77,12 +79,10 @@ async function handleSubmit() {
       await updateMachine(route.params.id, form.value)
       toast.success(`${form.value.name} updated`)
     } else {
-      // Create first, then upload image with the new ID
-      const machine = await createMachine(form.value)
-      if (imageFile.value) {
-        const imageUrl = await uploadMachineImage(imageFile.value, machine.id)
-        await updateMachine(machine.id, { image_url: imageUrl })
-      }
+      // Upload first, then create in one step: a failed upload leaves
+      // nothing behind, and a retry reuses the same id.
+      const imageUrl = imageFile.value ? await uploadMachineImage(imageFile.value, newMachineId) : form.value.image_url
+      await createMachine({ ...form.value, id: newMachineId, image_url: imageUrl })
       toast.success(`${form.value.name} added`)
     }
     router.push('/admin/machines')

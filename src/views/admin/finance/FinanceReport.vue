@@ -112,7 +112,19 @@ const filteredItems = computed(() => {
   return [...vrItems, ...addItems, ...expItems].sort((a, b) => a.date.localeCompare(b.date))
 })
 
-const filteredTotal = computed(() => filteredItems.value.reduce((a, i) => a + i.amount, 0))
+const isIncomeType = (type) => type === 'vr_revenue' || type === 'additional_income'
+
+// On "All", income and expenses can't just be added together: show profit/loss
+// (income − expenses, write-offs not deducted — the same rule as Monthly Overview).
+const filteredTotal = computed(() => {
+  if (filter.value !== 'all') return filteredItems.value.reduce((a, i) => a + i.amount, 0)
+  return filteredItems.value.reduce((a, i) => {
+    if (isIncomeType(i.type)) return a + i.amount
+    if (i.type === 'write_off') return a
+    return a - i.amount
+  }, 0)
+})
+const totalLabel = computed(() => (filter.value === 'all' ? 'Profit / loss (write-offs not deducted)' : 'Total'))
 
 function typeLabel(type) {
   const labels = {
@@ -395,7 +407,7 @@ onMounted(loadReport)
 
             <!-- Filter total -->
             <div class="bg-gray-50 rounded-xl p-3 flex items-center justify-between">
-              <p class="text-sm font-medium text-gray-500">Total</p>
+              <p class="text-sm font-medium text-gray-500">{{ totalLabel }}</p>
               <p class="text-sm font-bold text-gray-900">{{ formatPrice(filteredTotal) }} KES</p>
             </div>
           </div>
@@ -445,7 +457,7 @@ onMounted(loadReport)
               </tbody>
               <tfoot class="bg-gray-50 border-t border-gray-200">
                 <tr>
-                  <td colspan="4" class="px-6 py-3 text-sm font-bold text-gray-700">Total</td>
+                  <td colspan="4" class="px-6 py-3 text-sm font-bold text-gray-700">{{ totalLabel }}</td>
                   <td class="px-6 py-3 text-sm text-right font-bold text-gray-900">{{ formatPrice(filteredTotal) }} KES</td>
                   <td></td>
                 </tr>
