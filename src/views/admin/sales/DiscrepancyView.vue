@@ -2,6 +2,8 @@
 import { ref, onMounted } from 'vue'
 import { getDiscrepancies, resolveDiscrepancy } from '@/services/salesService'
 import { useAuth } from '@/composables/useAuth'
+import { formatPrice } from '@/utils/format'
+import { partnerDifference } from '@/utils/finance'
 import { toast } from 'vue-sonner'
 
 defineOptions({ name: 'DiscrepancyView' })
@@ -24,11 +26,6 @@ function formatDate(dateStr) {
     month: 'short',
     day: 'numeric',
   })
-}
-
-function formatPrice(amount) {
-  if (amount == null) return '—'
-  return Number(amount).toLocaleString('en-KE')
 }
 
 async function loadData() {
@@ -113,6 +110,7 @@ onMounted(loadData)
         <input type="checkbox" v-model="showResolved" @change="loadData" class="rounded border-gray-300 text-purple focus:ring-purple-500" />
         <span class="text-sm text-gray-600">Show resolved discrepancies</span>
       </label>
+      <p class="text-xs text-gray-400 mt-1">+ means the partner reported more than our records, − means less.</p>
     </div>
 
     <!-- Loading -->
@@ -136,13 +134,13 @@ onMounted(loadData)
         v-for="r in records"
         :key="r.id"
         class="bg-white rounded-xl shadow-soft p-4 border-l-4"
-        :class="r.discrepancy_resolved ? 'border-l-gray-300' : (-r.discrepancy) > 0 ? 'border-l-green-500' : 'border-l-red-500'"
+        :class="r.discrepancy_resolved ? 'border-l-gray-300' : partnerDifference(r) > 0 ? 'border-l-green-500' : 'border-l-red-500'"
       >
         <div class="flex items-center justify-between mb-2">
           <p class="font-medium text-gray-900 text-sm">{{ formatDate(r.date) }}</p>
           <span v-if="r.discrepancy_resolved" class="px-2 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500">Resolved</span>
-          <span v-else class="text-sm font-bold" :class="(-r.discrepancy) > 0 ? 'text-green-600' : 'text-red-600'">
-            {{ (-r.discrepancy) > 0 ? '+' : '' }}{{ formatPrice(-r.discrepancy) }} KES
+          <span v-else class="text-sm font-bold" :class="partnerDifference(r) > 0 ? 'text-green-600' : 'text-red-600'">
+            {{ partnerDifference(r) > 0 ? '+' : '' }}{{ formatPrice(partnerDifference(r)) }} KES
           </span>
         </div>
         <div class="grid grid-cols-2 gap-2 text-sm">
@@ -189,8 +187,8 @@ onMounted(loadData)
             <td class="px-6 py-4 text-sm text-gray-900">{{ formatPrice(r.partner_reported_revenue) }} KES</td>
             <td class="px-6 py-4">
               <span v-if="r.discrepancy_resolved" class="text-sm font-medium text-gray-400">Resolved</span>
-              <span v-else class="text-sm font-bold" :class="(-r.discrepancy) > 0 ? 'text-green-600' : 'text-red-600'">
-                {{ (-r.discrepancy) > 0 ? '+' : '' }}{{ formatPrice(-r.discrepancy) }} KES
+              <span v-else class="text-sm font-bold" :class="partnerDifference(r) > 0 ? 'text-green-600' : 'text-red-600'">
+                {{ partnerDifference(r) > 0 ? '+' : '' }}{{ formatPrice(partnerDifference(r)) }} KES
               </span>
             </td>
             <td class="px-6 py-4 text-sm text-gray-500">{{ r.profiles?.full_name || '—' }}</td>

@@ -5,6 +5,7 @@ import { listMachines } from '@/services/machineService'
 import { logSession, getTodaySessions, deleteSession, getTodayTotals } from '@/services/sessionService'
 import { listPartnerStaff } from '@/services/partnerStaffService'
 import { toast } from 'vue-sonner'
+import { formatPrice } from '@/utils/format'
 
 defineOptions({ name: 'SessionLogger' })
 
@@ -22,10 +23,6 @@ const modalMachine = ref(null)
 const modalCount = ref(1)
 const modalPartnerStaffId = ref('')
 const modalActing = ref(false)
-
-function formatPrice(amount) {
-  return Number(amount).toLocaleString('en-KE')
-}
 
 function formatTime(dateStr) {
   return new Date(dateStr).toLocaleTimeString('en-KE', {

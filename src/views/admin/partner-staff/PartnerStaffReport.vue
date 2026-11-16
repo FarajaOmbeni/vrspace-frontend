@@ -2,19 +2,17 @@
 import { ref, onMounted } from 'vue'
 import { getPartnerStaffReport } from '@/services/partnerStaffService'
 import { toast } from 'vue-sonner'
+import { formatPrice } from '@/utils/format'
+import { dbToday } from '@/utils/date'
 
 defineOptions({ name: 'PartnerStaffReport' })
 
 const report = ref([])
 const loading = ref(false)
 
-const today = new Date().toISOString().split('T')[0]
+const today = dbToday()
 const startDate = ref(today)
 const endDate = ref(today)
-
-function formatPrice(amount) {
-  return Number(amount).toLocaleString('en-KE')
-}
 
 const totalSessions = () => report.value.reduce((a, r) => a + r.total_sessions, 0)
 const totalRevenue = () => report.value.reduce((a, r) => a + r.total_revenue, 0)

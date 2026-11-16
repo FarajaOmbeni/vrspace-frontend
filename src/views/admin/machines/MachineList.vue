@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { listMachines, toggleMachineActive } from '@/services/machineService'
 import { toast } from 'vue-sonner'
+import { formatPrice } from '@/utils/format'
 
 defineOptions({ name: 'MachineList' })
 
@@ -37,10 +38,6 @@ async function handleToggle(machine) {
   } catch (e) {
     toast.error('Failed to update machine')
   }
-}
-
-function formatPrice(price) {
-  return Number(price).toLocaleString('en-KE')
 }
 
 onMounted(loadMachines)

@@ -1,4 +1,7 @@
 import { supabase } from '@/lib/supabase'
+import { monthRange } from '@/utils/date'
+import { ourShare, financeTotals, REVENUE_COLUMNS } from '@/utils/finance'
+import { buildSalaryRows, hourlyRateFrom } from '@/utils/payroll'
 
 // ── Expense Templates ──
 
@@ -70,83 +73,55 @@ export async function getExpense(id) {
   return { ...data, receipt_view_url: signed.receipt_url }
 }
 
-function localDateString(d) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+/** Everything needed to work out a month's recurring + salary rows. */
+async function loadMonthInputs(month) {
+  const { start, end } = monthRange(month)
+
+  const [settingsRes, templatesRes, employeesRes, existingRes, attendanceRes] = await Promise.all([
+    supabase.from('settings').select('value').eq('key', 'working_hours').maybeSingle(),
+    supabase.from('expense_templates').select('*').eq('is_active', true),
+    supabase.from('profiles').select('id, full_name, salary').eq('is_active', true).gt('salary', 0),
+    supabase.from('monthly_expenses').select('id, template_id, profile_id, type, amount, description').eq('month', month),
+    supabase.from('attendance').select('employee_id, overtime_hours').gte('date', start).lte('date', end).not('clock_out', 'is', null),
+  ])
+  for (const res of [settingsRes, templatesRes, employeesRes, existingRes, attendanceRes]) {
+    if (res.error) throw res.error
+  }
+
+  const existing = existingRes.data || []
+  return {
+    templates: templatesRes.data || [],
+    existing,
+    existingSalaries: existing.filter((e) => e.type === 'salary'),
+    salaryRows: buildSalaryRows({
+      month,
+      employees: employeesRes.data || [],
+      attendance: attendanceRes.data || [],
+      hourlyRate: hourlyRateFrom(settingsRes.data?.value),
+    }),
+  }
 }
 
 export async function populateMonth(month) {
-  // Calculate month date range
-  const [y, m] = month.split('-').map(Number)
-  const endDate = localDateString(new Date(y, m, 0)) // last day of month
+  const { templates, existing, existingSalaries, salaryRows } = await loadMonthInputs(month)
 
-  // Get hourly rate from settings
-  let hourlyRate = 400
-  const { data: workingHours } = await supabase
-    .from('settings')
-    .select('value')
-    .eq('key', 'working_hours')
-    .maybeSingle()
-  if (workingHours?.value?.hourly_rate) {
-    hourlyRate = workingHours.value.hourly_rate
-  }
+  const existingTemplateIds = new Set(existing.filter((e) => e.type === 'recurring').map((e) => e.template_id))
+  const existingProfileIds = new Set(existingSalaries.map((e) => e.profile_id))
 
-  const [{ data: templates }, { data: employees }, { data: existing }, { data: attendance }] = await Promise.all([
-    supabase.from('expense_templates').select('*').eq('is_active', true),
-    supabase.from('profiles').select('id, full_name, salary').eq('is_active', true).gt('salary', 0),
-    supabase.from('monthly_expenses').select('template_id, profile_id, type').eq('month', month),
-    supabase.from('attendance').select('employee_id, overtime_hours').gte('date', month).lte('date', endDate).not('clock_out', 'is', null),
-  ])
-
-  // Sum overtime hours per employee
-  const overtimeMap = {}
-  for (const a of attendance || []) {
-    const ot = Number(a.overtime_hours || 0)
-    if (ot > 0) {
-      overtimeMap[a.employee_id] = (overtimeMap[a.employee_id] || 0) + ot
-    }
-  }
-
-  const existingTemplateIds = new Set((existing || []).filter(e => e.type === 'recurring').map(e => e.template_id))
-  const existingProfileIds = new Set((existing || []).filter(e => e.type === 'salary').map(e => e.profile_id))
-
-  const rows = []
-
-  for (const t of templates || []) {
-    if (!existingTemplateIds.has(t.id)) {
-      rows.push({
+  const rows = [
+    ...templates
+      .filter((t) => !existingTemplateIds.has(t.id))
+      .map((t) => ({
         month,
         type: 'recurring',
         template_id: t.id,
         description: t.name,
         amount: t.default_amount,
-      })
-    }
-  }
+      })),
+    ...salaryRows.filter((r) => !existingProfileIds.has(r.profile_id)),
+  ]
 
-  for (const e of employees || []) {
-    if (!existingProfileIds.has(e.id)) {
-      const otHours = overtimeMap[e.id] || 0
-      const otPay = Math.round(otHours * hourlyRate)
-      const totalPay = Number(e.salary) + otPay
-
-      let description = `${e.full_name} - Salary`
-      if (otHours > 0) {
-        const h = Math.floor(otHours)
-        const m = Math.round((otHours - h) * 60)
-        description = `${e.full_name} - Salary (${h}h ${m}m OT = +${otPay.toLocaleString('en-KE')} KES)`
-      }
-
-      rows.push({
-        month,
-        type: 'salary',
-        profile_id: e.id,
-        description,
-        amount: totalPay,
-      })
-    }
-  }
-
-  if (rows.length === 0) return existing || []
+  if (rows.length === 0) return existing
 
   const { data, error } = await supabase
     .from('monthly_expenses')
@@ -155,6 +130,38 @@ export async function populateMonth(month) {
 
   if (error) throw error
   return data
+}
+
+/**
+ * Brings a month's salary rows up to date with the overtime actually worked:
+ * updates every active employee's salary row (overwriting manual edits) and
+ * adds rows for employees who don't have one yet. Run before closing a month.
+ */
+export async function recalculateSalaries(month) {
+  const { existingSalaries, salaryRows } = await loadMonthInputs(month)
+  const existingByProfile = Object.fromEntries(existingSalaries.map((e) => [e.profile_id, e]))
+
+  const toInsert = []
+  const toUpdate = []
+  for (const row of salaryRows) {
+    const current = existingByProfile[row.profile_id]
+    if (!current) {
+      toInsert.push(row)
+    } else if (Number(current.amount) !== row.amount || current.description !== row.description) {
+      toUpdate.push({ id: current.id, amount: row.amount, description: row.description })
+    }
+  }
+
+  const results = await Promise.all([
+    ...toUpdate.map(({ id, ...changes }) =>
+      supabase.from('monthly_expenses').update(changes).eq('id', id)
+    ),
+    toInsert.length ? supabase.from('monthly_expenses').insert(toInsert) : { error: null },
+  ])
+  const failed = results.find((r) => r.error)
+  if (failed) throw failed.error
+
+  return { updated: toUpdate.length, added: toInsert.length }
 }
 
 export async function createOneOffExpense({ month, description, amount }) {
@@ -299,7 +306,7 @@ export async function getFinanceReport({ startMonth, endMonth }) {
   const [sy, sm] = startMonth.split('-').map(Number)
   const [ey, em] = endMonth.split('-').map(Number)
   const firstDay = startMonth
-  const lastDay = localDateString(new Date(ey, em, 0))
+  const lastDay = monthRange(endMonth).end
 
   const [
     { data: salesRows, error: salesErr },
@@ -308,7 +315,7 @@ export async function getFinanceReport({ startMonth, endMonth }) {
   ] = await Promise.all([
     supabase
       .from('daily_sales')
-      .select('date, our_share, partner_reported_revenue')
+      .select(`date, ${REVENUE_COLUMNS}`)
       .gte('date', firstDay)
       .lte('date', lastDay),
     supabase
@@ -344,7 +351,7 @@ export async function getFinanceReport({ startMonth, endMonth }) {
   const vrByMonth = {}
   for (const row of salesRows || []) {
     const m = row.date.slice(0, 7) + '-01'
-    vrByMonth[m] = (vrByMonth[m] || 0) + vrOurShareForFinance(row)
+    vrByMonth[m] = (vrByMonth[m] || 0) + ourShare(row)
   }
 
   // Additional income per month
@@ -387,7 +394,7 @@ export async function getFinanceReport({ startMonth, endMonth }) {
   const vrDailyItems = (salesRows || []).map((row) => ({
     date: row.date,
     month: row.date.slice(0, 7) + '-01',
-    amount: vrOurShareForFinance(row),
+    amount: ourShare(row),
   }))
 
   return {
@@ -417,41 +424,29 @@ export async function getMonthStatus(month) {
   return data
 }
 
-/** Finance VR line: 50% of partner-reported gross when set; else session-derived our_share. */
-function vrOurShareForFinance(row) {
-  if (row.partner_reported_revenue != null) {
-    const p = Number(row.partner_reported_revenue)
-    if (!Number.isNaN(p)) return p * 0.5
-  }
-  return Number(row.our_share || 0)
-}
-
 export async function getMonthlyVRRevenue(month) {
-  const startDate = month
-  const [y, m] = month.split('-').map(Number)
-  const endDate = localDateString(new Date(y, m, 0))
+  const { start, end } = monthRange(month)
 
   const { data, error } = await supabase
     .from('daily_sales')
-    .select('our_share, partner_reported_revenue')
-    .gte('date', startDate)
-    .lte('date', endDate)
+    .select(REVENUE_COLUMNS)
+    .gte('date', start)
+    .lte('date', end)
 
   if (error) throw error
-  return (data || []).reduce((sum, r) => sum + vrOurShareForFinance(r), 0)
+  return (data || []).reduce((sum, r) => sum + ourShare(r), 0)
 }
 
 /** Calendar year through `throughMonth` (inclusive): same rules as the monthly overview (VR + additional income − expenses). */
 export async function getCumulativeFinanceThroughMonth(throughMonth) {
-  const [y, m] = throughMonth.split('-').map(Number)
-  const yearStart = `${y}-01-01`
-  const lastDay = localDateString(new Date(y, m, 0))
+  const yearStart = `${throughMonth.slice(0, 4)}-01-01`
+  const lastDay = monthRange(throughMonth).end
 
   const [{ data: salesRows, error: salesErr }, { data: expRows, error: expErr }, { data: incRows, error: incErr }] =
     await Promise.all([
       supabase
         .from('daily_sales')
-        .select('our_share, partner_reported_revenue')
+        .select(REVENUE_COLUMNS)
         .gte('date', yearStart)
         .lte('date', lastDay),
       supabase
@@ -470,16 +465,17 @@ export async function getCumulativeFinanceThroughMonth(throughMonth) {
   if (expErr) throw expErr
   if (incErr) throw incErr
 
-  const vrTotal = (salesRows || []).reduce((sum, r) => sum + vrOurShareForFinance(r), 0)
-  const additionalTotal = (incRows || []).reduce((sum, r) => sum + Number(r.amount || 0), 0)
-  const operationalRows = (expRows || []).filter((r) => r.type !== 'write_off')
-  const writeOffRows = (expRows || []).filter((r) => r.type === 'write_off')
-  const expenseTotal = operationalRows.reduce((sum, r) => sum + Number(r.amount || 0), 0)
-  const writeOffTotal = writeOffRows.reduce((sum, r) => sum + Number(r.amount || 0), 0)
-  const totalIncome = vrTotal + additionalTotal
-  const profitLoss = totalIncome - expenseTotal
+  const vrTotal = (salesRows || []).reduce((sum, r) => sum + ourShare(r), 0)
+  const t = financeTotals({ vrRevenue: vrTotal, expenses: expRows || [], additionalIncome: incRows || [] })
 
-  return { totalIncome, totalExpenses: expenseTotal, profitLoss, vrTotal, additionalTotal, writeOffTotal }
+  return {
+    totalIncome: t.totalIncome,
+    totalExpenses: t.totalExpenses,
+    profitLoss: t.profitLoss,
+    vrTotal,
+    additionalTotal: t.totalAdditionalIncome,
+    writeOffTotal: t.totalWriteOffs,
+  }
 }
 
 export async function closeMonth(month, closedBy, totalIncome, totalExpenses) {

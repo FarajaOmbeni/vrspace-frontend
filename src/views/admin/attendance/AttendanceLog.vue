@@ -3,19 +3,19 @@ import { ref, onMounted } from 'vue'
 import { listAttendance, clockIn, clockOut } from '@/services/attendanceService'
 import { listEmployees } from '@/services/employeeService'
 import { getSetting } from '@/services/settingsService'
+import { formatHoursOrDash as formatHours } from '@/utils/format'
+import { toDateStr, dbToday } from '@/utils/date'
+import { isLateClockIn, closingTimeOn } from '@/utils/payroll'
 import { toast } from 'vue-sonner'
 
 defineOptions({ name: 'AttendanceLog' })
 
 const records = ref([])
 const employees = ref([])
-const openingHour = ref(11)
+const workingHours = ref(null)
 
 function isLate(clockInStr) {
-  if (!clockInStr) return false
-  const d = new Date(clockInStr)
-  return d.getHours() > openingHour.value ||
-    (d.getHours() === openingHour.value && d.getMinutes() > 0)
+  return isLateClockIn(clockInStr, workingHours.value)
 }
 const loading = ref(true)
 
@@ -32,6 +32,15 @@ const manualActing = ref(false)
 const showClockOutModal = ref(false)
 const clockOutRecord = ref(null)
 const clockOutTime = ref('')
+const clockOutError = ref('')
+const clockingOut = ref(false)
+
+/** 'YYYY-MM-DDTHH:mm' in this device's time, for <input type="datetime-local">. */
+function toLocalInputValue(d) {
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mm = String(d.getMinutes()).padStart(2, '0')
+  return `${toDateStr(d)}T${hh}:${mm}`
+}
 
 async function handleManualClockIn() {
   if (!manualEmployeeId.value) {
@@ -55,26 +64,50 @@ async function handleManualClockIn() {
 
 function openClockOutModal(record) {
   clockOutRecord.value = record
-  // Default to the record's date with current time, or closing time
-  const date = record.date
+  clockOutError.value = ''
+  // Today's shift: now. A forgotten shift from an earlier day: that day's
+  // closing time (never later than now).
   const now = new Date()
-  const hh = String(now.getHours()).padStart(2, '0')
-  const mm = String(now.getMinutes()).padStart(2, '0')
-  clockOutTime.value = `${date}T${hh}:${mm}`
+  const suggested = record.date === dbToday()
+    ? now
+    : new Date(Math.min(closingTimeOn(record.date, workingHours.value).getTime(), now.getTime()))
+  clockOutTime.value = toLocalInputValue(suggested)
   showClockOutModal.value = true
 }
 
+function closeClockOutModal() {
+  showClockOutModal.value = false
+  clockOutRecord.value = null
+  clockOutError.value = ''
+}
+
 async function handleManualClockOut() {
-  if (!clockOutRecord.value || !clockOutTime.value) return
+  if (!clockOutRecord.value || !clockOutTime.value || clockingOut.value) return
+
+  const chosen = new Date(clockOutTime.value)
+  if (Number.isNaN(chosen.getTime())) {
+    clockOutError.value = 'Pick a valid date and time'
+    return
+  }
+  if (chosen <= new Date(clockOutRecord.value.clock_in)) {
+    clockOutError.value = `Must be after they clocked in (${formatTime(clockOutRecord.value.clock_in)})`
+    return
+  }
+  if (chosen.getTime() > Date.now() + 5 * 60 * 1000) {
+    clockOutError.value = "Can't be in the future"
+    return
+  }
+
+  clockingOut.value = true
   try {
-    const localDt = new Date(clockOutTime.value)
-    await clockOut(clockOutRecord.value.id, localDt.toISOString())
+    await clockOut(clockOutRecord.value.id, chosen.toISOString())
     toast.success(`${clockOutRecord.value.profiles?.full_name || 'Employee'} clocked out`)
-    showClockOutModal.value = false
-    clockOutRecord.value = null
+    closeClockOutModal()
     loadData()
   } catch (e) {
     toast.error(e.message || 'Failed to clock out employee')
+  } finally {
+    clockingOut.value = false
   }
 }
 
@@ -94,18 +127,10 @@ function formatTime(dateStr) {
   })
 }
 
-function formatHours(hours) {
-  if (!hours) return '—'
-  let h = Math.floor(hours)
-  let m = Math.round((hours - h) * 60)
-  if (m === 60) { h++; m = 0 }
-  return `${h}h ${m}m`
-}
-
 async function loadData() {
   loading.value = true
   try {
-    const [empData, attData, workingHours] = await Promise.all([
+    const [empData, attData, settings] = await Promise.all([
       listEmployees(),
       listAttendance({
         employeeId: filterEmployee.value || undefined,
@@ -116,9 +141,7 @@ async function loadData() {
     ])
     employees.value = empData
     records.value = attData
-    if (workingHours?.opening_hour != null) {
-      openingHour.value = workingHours.opening_hour
-    }
+    workingHours.value = settings
   } catch (e) {
     toast.error('Failed to load attendance')
   } finally {
@@ -337,17 +360,21 @@ onMounted(loadData)
         <input
           v-model="clockOutTime"
           type="datetime-local"
-          class="w-full rounded-lg border-gray-300 text-sm py-2.5 focus:border-purple-500 focus:ring-purple-500 mb-4"
+          @input="clockOutError = ''"
+          class="w-full rounded-lg border-gray-300 text-sm py-2.5 focus:border-purple-500 focus:ring-purple-500"
         />
-        <div class="flex gap-2">
+        <p class="text-xs text-gray-400 mt-1">Clocked in {{ formatDate(clockOutRecord?.date) }} at {{ formatTime(clockOutRecord?.clock_in) }}</p>
+        <p v-if="clockOutError" class="text-sm text-red-600 mt-2">{{ clockOutError }}</p>
+        <div class="flex gap-2 mt-4">
           <button
             @click="handleManualClockOut"
-            class="flex-1 bg-red-500 text-white font-medium py-2.5 rounded-xl text-sm hover:bg-red-600 transition-colors"
+            :disabled="clockingOut"
+            class="flex-1 bg-red-500 text-white font-medium py-2.5 rounded-xl text-sm hover:bg-red-600 transition-colors disabled:opacity-50"
           >
-            Confirm Clock Out
+            {{ clockingOut ? 'Saving...' : 'Confirm Clock Out' }}
           </button>
           <button
-            @click="showClockOutModal = false; clockOutRecord = null"
+            @click="closeClockOutModal"
             class="flex-1 bg-gray-100 text-gray-600 font-medium py-2.5 rounded-xl text-sm hover:bg-gray-200 transition-colors"
           >
             Cancel

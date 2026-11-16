@@ -2,8 +2,11 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 import { useGeolocation } from '@/composables/useGeolocation'
-import { getTodayRecord, clockIn, clockOut, getEmployeeHours } from '@/services/attendanceService'
+import { getTodayRecord, clockIn, clockOut, getEmployeeHours, listMissedClockOuts } from '@/services/attendanceService'
 import { getShopLocation, getSetting } from '@/services/settingsService'
+import { formatHoursOrDash as formatHours } from '@/utils/format'
+import { toDateStr, monthStartOf, shiftMonth, monthRange } from '@/utils/date'
+import { isLateClockIn, hourlyRateFrom, overtimePay as calcOvertimePay, sumAttendance } from '@/utils/payroll'
 import { toast } from 'vue-sonner'
 
 defineOptions({ name: 'ClockInOut' })
@@ -20,22 +23,18 @@ const locationBlocked = ref(false)
 const locationDistance = ref(null)
 const monthlyHours = ref(0)
 const monthlyOvertime = ref(0)
-const hourlyRate = ref(400)
-const openingHour = ref(11)
+const workingHours = ref(null)
+const hourlyRate = computed(() => hourlyRateFrom(workingHours.value))
 const previousMonths = ref([])
+const missedShift = ref(null)
 let timer = null
 
 const isClockedIn = computed(() => record.value && !record.value.clock_out)
 const isClockedOut = computed(() => record.value && record.value.clock_out)
 const salary = computed(() => Number(profile.value?.salary || 0))
 
-const isLate = computed(() => {
-  if (!record.value?.clock_in) return false
-  const clockIn = new Date(record.value.clock_in)
-  return clockIn.getHours() > openingHour.value ||
-    (clockIn.getHours() === openingHour.value && clockIn.getMinutes() > 0)
-})
-const overtimePay = computed(() => Math.round(monthlyOvertime.value * hourlyRate.value))
+const isLate = computed(() => isLateClockIn(record.value?.clock_in, workingHours.value))
+const overtimePay = computed(() => calcOvertimePay(monthlyOvertime.value, hourlyRate.value))
 const totalPay = computed(() => salary.value + overtimePay.value)
 
 function formatTime(dateStr) {
@@ -43,14 +42,6 @@ function formatTime(dateStr) {
     hour: '2-digit',
     minute: '2-digit',
   })
-}
-
-function formatHours(hours) {
-  if (!hours) return '—'
-  let h = Math.floor(hours)
-  let m = Math.round((hours - h) * 60)
-  if (m === 60) { h++; m = 0 }
-  return `${h}h ${m}m`
 }
 
 function updateElapsed() {
@@ -107,59 +98,65 @@ async function checkLocation() {
   }
 }
 
+/** Fills this month's and the previous 3 months' totals from attendance rows. */
+function applyHistory(history, thisMonth) {
+  const inMonth = (month) => {
+    const { start, end } = monthRange(month)
+    return history.filter((r) => r.date >= start && r.date <= end)
+  }
+
+  const current = sumAttendance(inMonth(thisMonth))
+  monthlyHours.value = current.totalHours
+  monthlyOvertime.value = current.overtimeHours
+
+  previousMonths.value = [1, 2, 3].map((back) => {
+    const month = shiftMonth(thisMonth, -back)
+    const [y, m] = month.split('-').map(Number)
+    const totals = sumAttendance(inMonth(month))
+    const otPay = calcOvertimePay(totals.overtimeHours, hourlyRate.value)
+    return {
+      label: new Date(y, m - 1, 1).toLocaleDateString('en-KE', { month: 'long', year: 'numeric' }),
+      hours: totals.totalHours,
+      overtime: totals.overtimeHours,
+      otPay,
+      totalPay: salary.value + otPay,
+    }
+  })
+}
+
 async function loadRecord() {
   loading.value = true
   try {
     const now = new Date()
-    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0]
-    const today = now.toISOString().split('T')[0]
+    const thisMonth = monthStartOf(now)
+    const today = toDateStr(now)
+    const oldestMonth = shiftMonth(thisMonth, -3)
 
-    const [rec, loc, monthlyData, workingHours] = await Promise.all([
+    const [rec, loc, history, settings, missed] = await Promise.all([
       getTodayRecord(user.value.id),
       getShopLocation().catch(() => null),
+      // This month plus the previous 3, in one query.
       getEmployeeHours({
         employeeId: user.value.id,
-        startDate: monthStart,
+        startDate: oldestMonth,
         endDate: today,
-      }).catch(() => []),
+      }).catch(() => null), // don't block clocking in if history fails
       getSetting('working_hours').catch(() => null),
+      listMissedClockOuts(user.value.id).catch(() => []),
     ])
     record.value = rec
     shopLocation.value = loc
+    workingHours.value = settings
+    missedShift.value = missed[0] || null
 
-    if (workingHours?.hourly_rate) {
-      hourlyRate.value = workingHours.hourly_rate
+    if (history) {
+      applyHistory(history, thisMonth)
+    } else {
+      monthlyHours.value = null
+      monthlyOvertime.value = null
+      previousMonths.value = []
+      toast.error("Couldn't load your hours history")
     }
-    if (workingHours?.opening_hour != null) {
-      openingHour.value = workingHours.opening_hour
-    }
-
-    monthlyHours.value = monthlyData.reduce((a, r) => a + Number(r.total_hours || 0), 0)
-    monthlyOvertime.value = monthlyData.reduce((a, r) => a + Number(r.overtime_hours || 0), 0)
-
-    // Load previous 3 months
-    const prevMonthsData = []
-    for (let m = 1; m <= 3; m++) {
-      const d = new Date(now.getFullYear(), now.getMonth() - m, 1)
-      const pStart = d.toISOString().split('T')[0]
-      const pEnd = new Date(d.getFullYear(), d.getMonth() + 1, 0).toISOString().split('T')[0]
-      const label = d.toLocaleDateString('en-KE', { month: 'long', year: 'numeric' })
-
-      try {
-        const data = await getEmployeeHours({
-          employeeId: user.value.id,
-          startDate: pStart,
-          endDate: pEnd,
-        })
-        const hours = data.reduce((a, r) => a + Number(r.total_hours || 0), 0)
-        const overtime = data.reduce((a, r) => a + Number(r.overtime_hours || 0), 0)
-        const otPay = Math.round(overtime * hourlyRate.value)
-        prevMonthsData.push({ label, hours, overtime, otPay, totalPay: Number(profile.value?.salary || 0) + otPay })
-      } catch (e) {
-        prevMonthsData.push({ label, hours: 0, overtime: 0, otPay: 0, totalPay: Number(profile.value?.salary || 0) })
-      }
-    }
-    previousMonths.value = prevMonthsData
 
     if (isClockedIn.value) {
       startTimer()
@@ -236,6 +233,14 @@ onUnmounted(stopTimer)
     </div>
 
     <template v-else>
+      <!-- Forgot to clock out on a previous day -->
+      <div v-if="missedShift" class="w-full max-w-2xl mx-auto mb-4 bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+        <p class="text-sm font-medium text-yellow-800">
+          You didn't clock out on {{ new Date(missedShift.date + 'T00:00:00').toLocaleDateString('en-KE', { weekday: 'long', month: 'short', day: 'numeric' }) }}.
+        </p>
+        <p class="text-xs text-yellow-700 mt-1">Ask an admin to set your clock-out time for that day.</p>
+      </div>
+
       <!-- Desktop: card layout -->
       <div class="w-full max-w-2xl mx-auto md:grid md:grid-cols-2 md:gap-6">
 

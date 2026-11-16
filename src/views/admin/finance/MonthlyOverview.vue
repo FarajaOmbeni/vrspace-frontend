@@ -6,7 +6,10 @@ import {
   listMonthlyExpenses, populateMonth, deleteExpense, updateExpense,
   listAdditionalIncome, deleteAdditionalIncome,
   getMonthStatus, getMonthlyVRRevenue, getCumulativeFinanceThroughMonth, closeMonth, reopenMonth,
+  recalculateSalaries,
 } from '@/services/financeService'
+import { formatPrice } from '@/utils/format'
+import { financeTotals } from '@/utils/finance'
 import { toast } from 'vue-sonner'
 
 defineOptions({ name: 'MonthlyOverview' })
@@ -29,6 +32,8 @@ const loading = ref(true)
 const populating = ref(false)
 const closing = ref(false)
 const showCloseConfirm = ref(false)
+const preparingClose = ref(false)
+const salariesChanged = ref(0)
 const editingExpenseId = ref(null)
 
 /** Calendar-year cumulative through selected month (from getCumulativeFinanceThroughMonth). */
@@ -42,11 +47,14 @@ const oneOffExpenses = computed(() => expenses.value.filter((e) => e.type === 'o
 const writeOffExpenses = computed(() => expenses.value.filter((e) => e.type === 'write_off'))
 
 const operationalExpenses = computed(() => expenses.value.filter((e) => e.type !== 'write_off'))
-const totalExpenses = computed(() => operationalExpenses.value.reduce((a, e) => a + Number(e.amount), 0))
-const totalWriteOffs = computed(() => writeOffExpenses.value.reduce((a, e) => a + Number(e.amount), 0))
-const totalAdditionalIncome = computed(() => income.value.reduce((a, i) => a + Number(i.amount), 0))
-const totalIncome = computed(() => vrRevenue.value + totalAdditionalIncome.value)
-const profitLoss = computed(() => totalIncome.value - totalExpenses.value)
+
+const totals = computed(() =>
+  financeTotals({ vrRevenue: vrRevenue.value, expenses: expenses.value, additionalIncome: income.value })
+)
+const totalExpenses = computed(() => totals.value.totalExpenses)
+const totalWriteOffs = computed(() => totals.value.totalWriteOffs)
+const totalIncome = computed(() => totals.value.totalIncome)
+const profitLoss = computed(() => totals.value.profitLoss)
 
 const monthLabel = computed(() => {
   const [y, m] = currentMonth.value.split('-').map(Number)
@@ -61,10 +69,6 @@ const cumulativeRangeLabel = computed(() => {
   const opts = { month: 'short', year: 'numeric' }
   return `${startD.toLocaleDateString('en-KE', opts)} – ${endD.toLocaleDateString('en-KE', opts)}`
 })
-
-function formatPrice(amount) {
-  return Number(amount).toLocaleString('en-KE')
-}
 
 function formatMonth(year, month) {
   return `${year}-${String(month + 1).padStart(2, '0')}-01`
@@ -156,6 +160,24 @@ async function handleDeleteIncome(id) {
     toast.success('Income deleted')
   } catch (e) {
     toast.error(e.message || 'Failed to delete')
+  }
+}
+
+/**
+ * Before showing the close confirmation, bring salary rows up to date with
+ * the month's final overtime, so the totals shown are the ones that get closed.
+ */
+async function openCloseConfirm() {
+  preparingClose.value = true
+  try {
+    const { updated, added } = await recalculateSalaries(currentMonth.value)
+    salariesChanged.value = updated + added
+    await loadData()
+    showCloseConfirm.value = true
+  } catch (e) {
+    toast.error(e.message || 'Failed to update salaries')
+  } finally {
+    preparingClose.value = false
   }
 }
 
@@ -468,10 +490,11 @@ onMounted(loadData)
       <!-- Close / Reopen month -->
       <div v-if="!isClosed && expenses.length > 0" class="mt-8">
         <button
-          @click="showCloseConfirm = true"
-          class="w-full bg-blue-950 text-white font-semibold py-3 rounded-xl text-base hover:bg-blue-900 transition-colors"
+          @click="openCloseConfirm"
+          :disabled="preparingClose"
+          class="w-full bg-blue-950 text-white font-semibold py-3 rounded-xl text-base hover:bg-blue-900 transition-colors disabled:opacity-50"
         >
-          Close Month
+          {{ preparingClose ? 'Updating salaries...' : 'Close Month' }}
         </button>
       </div>
       <div v-if="isClosed" class="mt-8">
@@ -497,6 +520,10 @@ onMounted(loadData)
           <div class="relative bg-white rounded-2xl shadow-strong w-full max-w-sm p-6 text-center">
             <h3 class="text-lg font-bold text-gray-900 mb-2">Close {{ monthLabel }}?</h3>
             <p class="text-sm text-gray-500 mb-4">No further edits will be allowed after closing.</p>
+            <p v-if="salariesChanged > 0" class="text-xs text-blue-900 bg-blue-50 rounded-lg p-2 mb-4">
+              {{ salariesChanged }} salary row{{ salariesChanged > 1 ? 's were' : ' was' }} updated with this month's overtime.
+              Manual changes to salary amounts were replaced.
+            </p>
 
             <div class="bg-gray-50 rounded-xl p-3 mb-4 text-sm space-y-1">
               <div class="flex justify-between"><span class="text-gray-500">Income</span><span class="font-bold text-green-600">{{ formatPrice(totalIncome) }} KES</span></div>

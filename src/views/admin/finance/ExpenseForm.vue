@@ -3,6 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { createOneOffExpense, createWriteOffExpense, getExpense, updateExpense, uploadReceipt } from '@/services/financeService'
 import { toast } from 'vue-sonner'
+import { monthStartOf } from '@/utils/date'
 
 defineOptions({ name: 'ExpenseForm' })
 
@@ -21,7 +22,7 @@ const loading = ref(false)
 const loadingData = ref(false)
 
 // Month from query param or current month
-const month = computed(() => route.query.month || new Date().toISOString().slice(0, 7) + '-01')
+const month = computed(() => route.query.month || monthStartOf(new Date()))
 const expenseType = computed(() => route.query.type === 'write_off' ? 'write_off' : 'one_off')
 const isWriteOff = computed(() => expenseType.value === 'write_off')
 

@@ -2,17 +2,15 @@
 import { ref, computed, onMounted } from 'vue'
 import { getSessionsByDate } from '@/services/sessionService'
 import { toast } from 'vue-sonner'
+import { formatPrice } from '@/utils/format'
+import { dbToday } from '@/utils/date'
 
 defineOptions({ name: 'SessionHistory' })
 
 const sessions = ref([])
 const loading = ref(true)
-const filterDate = ref(new Date().toISOString().split('T')[0])
+const filterDate = ref(dbToday())
 const filterEmployeeId = ref('')
-
-function formatPrice(amount) {
-  return Number(amount).toLocaleString('en-KE')
-}
 
 function formatTime(dateStr) {
   return new Date(dateStr).toLocaleTimeString('en-KE', {

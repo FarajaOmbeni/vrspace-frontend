@@ -1,6 +1,9 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { listDailySales } from '@/services/salesService'
+import { formatPrice } from '@/utils/format'
+import { periodRange } from '@/utils/date'
+import { effectiveGross, ourShare, partnerShare, partnerDifference } from '@/utils/finance'
 import { toast } from 'vue-sonner'
 
 defineOptions({ name: 'SalesReport' })
@@ -13,36 +16,7 @@ const filterStartDate = ref('')
 const filterEndDate = ref('')
 
 function getDateRange() {
-  const now = new Date()
-  let start, end
-
-  if (filterPeriod.value === 'week') {
-    const day = now.getDay()
-    start = new Date(now)
-    start.setDate(now.getDate() - (day === 0 ? 6 : day - 1))
-    end = now
-  } else if (filterPeriod.value === 'month') {
-    start = new Date(now.getFullYear(), now.getMonth(), 1)
-    end = now
-  } else if (filterPeriod.value === 'last-month') {
-    start = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-    end = new Date(now.getFullYear(), now.getMonth(), 0)
-  } else {
-    start = filterStartDate.value ? new Date(filterStartDate.value) : null
-    end = filterEndDate.value ? new Date(filterEndDate.value) : null
-  }
-
-  function toDateStr(d) {
-    const y = d.getFullYear()
-    const m = String(d.getMonth() + 1).padStart(2, '0')
-    const day = String(d.getDate()).padStart(2, '0')
-    return `${y}-${m}-${day}`
-  }
-
-  return {
-    startDate: start ? toDateStr(start) : undefined,
-    endDate: end ? toDateStr(end) : undefined,
-  }
+  return periodRange(filterPeriod.value, { start: filterStartDate.value, end: filterEndDate.value })
 }
 
 function formatDate(dateStr) {
@@ -53,22 +27,18 @@ function formatDate(dateStr) {
   })
 }
 
-function formatPrice(amount) {
-  if (amount == null) return '—'
-  return Number(amount).toLocaleString('en-KE')
-}
+const getRevenue = effectiveGross
 
-function getRevenue(r) {
-  if (r.discrepancy_resolved && r.resolved_with === 'ours') return Number(r.total_revenue || 0)
-  return Number(r.partner_reported_revenue || 0)
-}
+// Shares show "—" until the partner has reported the day.
+const rowOurShare = (r) => (r.partner_reported_revenue == null ? null : ourShare(r))
+const rowPartnerShare = (r) => (r.partner_reported_revenue == null ? null : partnerShare(r))
 
 const totalRevenue = computed(() => records.value.reduce((a, r) => a + getRevenue(r), 0))
-const totalOurShare = computed(() => records.value.reduce((a, r) => a + Number(r.our_share || 0), 0))
-const totalPartnerShare = computed(() => records.value.reduce((a, r) => a + Number(r.partner_share || 0), 0))
+const totalOurShare = computed(() => records.value.reduce((a, r) => a + ourShare(r), 0))
+const totalPartnerShare = computed(() => records.value.reduce((a, r) => a + partnerShare(r), 0))
 const totalDiscrepancy = computed(() => records.value.reduce((a, r) => {
   if (r.discrepancy != null && r.discrepancy !== 0 && !r.discrepancy_resolved) {
-    return a + Number(-r.discrepancy)
+    return a + partnerDifference(r)
   }
   return a
 }, 0))
@@ -156,9 +126,9 @@ onMounted(loadData)
           <span
             v-else-if="r.discrepancy != null && r.discrepancy !== 0"
             class="px-2 py-0.5 rounded-full text-xs font-medium"
-            :class="(-r.discrepancy) > 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'"
+            :class="partnerDifference(r) > 0 ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'"
           >
-            {{ (-r.discrepancy) > 0 ? '+' : '' }}{{ formatPrice(-r.discrepancy) }}
+            {{ partnerDifference(r) > 0 ? '+' : '' }}{{ formatPrice(partnerDifference(r)) }}
           </span>
           <span v-else-if="r.partner_reported_revenue != null" class="px-2 py-0.5 rounded-full text-xs font-medium bg-green-50 text-green-600">Match</span>
         </div>
@@ -173,11 +143,11 @@ onMounted(loadData)
           </div>
           <div>
             <p class="text-xs text-gray-400">Our Share</p>
-            <p class="font-medium">{{ formatPrice(r.our_share) }} KES</p>
+            <p class="font-medium">{{ formatPrice(rowOurShare(r)) }} KES</p>
           </div>
           <div>
             <p class="text-xs text-gray-400">Partner Share</p>
-            <p class="font-medium">{{ formatPrice(r.partner_share) }} KES</p>
+            <p class="font-medium">{{ formatPrice(rowPartnerShare(r)) }} KES</p>
           </div>
         </div>
       </div>
@@ -201,13 +171,13 @@ onMounted(loadData)
             <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ formatDate(r.date) }}</td>
             <td class="px-6 py-4 text-sm font-semibold text-purple">{{ formatPrice(getRevenue(r)) }}</td>
             <td class="px-6 py-4 text-sm text-gray-900">{{ formatPrice(r.total_revenue) }}</td>
-            <td class="px-6 py-4 text-sm text-gray-900">{{ formatPrice(r.our_share) }}</td>
-            <td class="px-6 py-4 text-sm text-gray-900">{{ formatPrice(r.partner_share) }}</td>
+            <td class="px-6 py-4 text-sm text-gray-900">{{ formatPrice(rowOurShare(r)) }}</td>
+            <td class="px-6 py-4 text-sm text-gray-900">{{ formatPrice(rowPartnerShare(r)) }}</td>
             <td class="px-6 py-4">
               <span v-if="r.discrepancy == null" class="text-sm text-gray-400">—</span>
               <span v-else-if="r.discrepancy === 0" class="text-sm font-medium text-green-600">Match</span>
               <span v-else-if="r.discrepancy_resolved" class="text-sm font-medium text-gray-400">Resolved</span>
-              <span v-else class="text-sm font-medium" :class="(-r.discrepancy) > 0 ? 'text-green-600' : 'text-red-600'">{{ (-r.discrepancy) > 0 ? '+' : '' }}{{ formatPrice(-r.discrepancy) }}</span>
+              <span v-else class="text-sm font-medium" :class="partnerDifference(r) > 0 ? 'text-green-600' : 'text-red-600'">{{ partnerDifference(r) > 0 ? '+' : '' }}{{ formatPrice(partnerDifference(r)) }}</span>
             </td>
           </tr>
         </tbody>

@@ -1,7 +1,8 @@
 import { supabase } from '@/lib/supabase'
+import { dbToday } from '@/utils/date'
 
 export async function getTodayRecord(employeeId) {
-  const today = new Date().toISOString().split('T')[0]
+  const today = dbToday()
 
   const { data, error } = await supabase
     .from('attendance')
@@ -15,7 +16,7 @@ export async function getTodayRecord(employeeId) {
 }
 
 export async function clockIn(employeeId) {
-  const today = new Date().toISOString().split('T')[0]
+  const today = dbToday()
 
   const { data, error } = await supabase
     .from('attendance')
@@ -26,6 +27,25 @@ export async function clockIn(employeeId) {
     .select()
     .single()
 
+  if (error) throw error
+  return data
+}
+
+/**
+ * Shifts from before today that were never clocked out.
+ * Pass employeeId to check one person; omit it to list everyone's (admin).
+ */
+export async function listMissedClockOuts(employeeId) {
+  let query = supabase
+    .from('attendance')
+    .select('*, profiles:employee_id(full_name)')
+    .is('clock_out', null)
+    .lt('date', dbToday())
+    .order('date', { ascending: false })
+
+  if (employeeId) query = query.eq('employee_id', employeeId)
+
+  const { data, error } = await query
   if (error) throw error
   return data
 }

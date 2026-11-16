@@ -13,15 +13,33 @@ export async function getDailySales(date) {
 
 export async function updatePartnerRevenue(date, partnerRevenue, loggedBy, notes) {
   // First ensure daily_sales row exists by calling compute function
-  await supabase.rpc('compute_daily_sales', { p_date: date })
+  const { error: rpcError } = await supabase.rpc('compute_daily_sales', { p_date: date })
+  if (rpcError) throw rpcError
+
+  const existing = await getDailySales(date)
+
+  const changes = {
+    partner_reported_revenue: partnerRevenue,
+    logged_by: loggedBy,
+    notes: notes || null,
+  }
+
+  // A new partner figure means a new discrepancy: any earlier resolution no
+  // longer applies, so it needs reviewing again.
+  const previous = existing?.partner_reported_revenue
+  const figureChanged = previous == null || Number(previous) !== Number(partnerRevenue)
+  if (existing?.discrepancy_resolved && figureChanged) {
+    Object.assign(changes, {
+      discrepancy_resolved: false,
+      resolved_at: null,
+      resolved_by: null,
+      resolved_with: null,
+    })
+  }
 
   const { data, error } = await supabase
     .from('daily_sales')
-    .update({
-      partner_reported_revenue: partnerRevenue,
-      logged_by: loggedBy,
-      notes: notes || null,
-    })
+    .update(changes)
     .eq('date', date)
     .select()
     .single()

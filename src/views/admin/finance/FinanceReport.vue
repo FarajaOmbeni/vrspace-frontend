@@ -2,6 +2,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { getFinanceReport } from '@/services/financeService'
 import { toast } from 'vue-sonner'
+import { formatPrice } from '@/utils/format'
 
 defineOptions({ name: 'FinanceReport' })
 
@@ -12,10 +13,6 @@ const endMonth = ref(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart
 const report = ref(null)
 const loading = ref(false)
 const filter = ref('all') // 'all', 'income', 'expenses', 'write_offs'
-
-function formatPrice(amount) {
-  return Number(amount).toLocaleString('en-KE')
-}
 
 function formatMonthLabel(month) {
   const [y, m] = month.split('-').map(Number)

@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { listExpenseTemplates, createExpenseTemplate, updateExpenseTemplate, toggleExpenseTemplateActive } from '@/services/financeService'
 import { toast } from 'vue-sonner'
+import { formatPrice } from '@/utils/format'
 
 defineOptions({ name: 'ExpenseTemplates' })
 
@@ -12,10 +13,6 @@ const showForm = ref(false)
 const editingId = ref(null)
 const form = ref({ name: '', default_amount: 0 })
 const saving = ref(false)
-
-function formatPrice(amount) {
-  return Number(amount).toLocaleString('en-KE')
-}
 
 async function loadTemplates() {
   loading.value = true
