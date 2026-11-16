@@ -1,5 +1,5 @@
 import { supabase } from '@/lib/supabase'
-import { dbToday } from '@/utils/date'
+import { todayEAT } from '@/utils/date'
 import { fetchAll } from '@/lib/fetchAll'
 
 export async function logSession({ employeeId, machineId, sessionCount, pricePerSession, partnerStaffId }) {
@@ -20,7 +20,7 @@ export async function logSession({ employeeId, machineId, sessionCount, pricePer
 }
 
 export async function getTodaySessions(employeeId) {
-  const today = dbToday()
+  const today = todayEAT()
 
   let query = supabase
     .from('sessions')
@@ -94,7 +94,7 @@ export async function getMachineRevenue({ startDate, endDate } = {}) {
 }
 
 export async function getTodayTotals() {
-  const today = dbToday()
+  const today = todayEAT()
 
   const { data, error } = await supabase
     .from('sessions')

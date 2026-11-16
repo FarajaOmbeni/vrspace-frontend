@@ -3,8 +3,8 @@ import { ref, onMounted } from 'vue'
 import { listAttendance, clockIn, clockOut } from '@/services/attendanceService'
 import { listEmployees } from '@/services/employeeService'
 import { getSetting } from '@/services/settingsService'
-import { formatHoursOrDash as formatHours } from '@/utils/format'
-import { toDateStr, dbToday } from '@/utils/date'
+import { formatHoursOrDash as formatHours, formatTime } from '@/utils/format'
+import { todayEAT, zonedParts, zonedTimeToDate } from '@/utils/date'
 import { isLateClockIn, closingTimeOn } from '@/utils/payroll'
 import { toast } from 'vue-sonner'
 
@@ -35,11 +35,18 @@ const clockOutTime = ref('')
 const clockOutError = ref('')
 const clockingOut = ref(false)
 
-/** 'YYYY-MM-DDTHH:mm' in this device's time, for <input type="datetime-local">. */
-function toLocalInputValue(d) {
-  const hh = String(d.getHours()).padStart(2, '0')
-  const mm = String(d.getMinutes()).padStart(2, '0')
-  return `${toDateStr(d)}T${hh}:${mm}`
+/** 'YYYY-MM-DDTHH:mm' in EAT, for <input type="datetime-local">. */
+function toEatInputValue(instant) {
+  const { date, minutes } = zonedParts(instant)
+  return `${date}T${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}`
+}
+
+/** Parses a datetime-local value as EAT (not the device's time zone). */
+function fromEatInputValue(value) {
+  const [date, time] = value.split('T')
+  if (!date || !time) return new Date(NaN)
+  const [h, m] = time.split(':').map(Number)
+  return zonedTimeToDate(date, h * 60 + m)
 }
 
 async function handleManualClockIn() {
@@ -68,10 +75,10 @@ function openClockOutModal(record) {
   // Today's shift: now. A forgotten shift from an earlier day: that day's
   // closing time (never later than now).
   const now = new Date()
-  const suggested = record.date === dbToday()
+  const suggested = record.date === todayEAT()
     ? now
     : new Date(Math.min(closingTimeOn(record.date, workingHours.value).getTime(), now.getTime()))
-  clockOutTime.value = toLocalInputValue(suggested)
+  clockOutTime.value = toEatInputValue(suggested)
   showClockOutModal.value = true
 }
 
@@ -84,7 +91,7 @@ function closeClockOutModal() {
 async function handleManualClockOut() {
   if (!clockOutRecord.value || !clockOutTime.value || clockingOut.value) return
 
-  const chosen = new Date(clockOutTime.value)
+  const chosen = fromEatInputValue(clockOutTime.value)
   if (Number.isNaN(chosen.getTime())) {
     clockOutError.value = 'Pick a valid date and time'
     return
@@ -116,14 +123,6 @@ function formatDate(dateStr) {
     weekday: 'short',
     month: 'short',
     day: 'numeric',
-  })
-}
-
-function formatTime(dateStr) {
-  if (!dateStr) return '—'
-  return new Date(dateStr).toLocaleTimeString('en-KE', {
-    hour: '2-digit',
-    minute: '2-digit',
   })
 }
 

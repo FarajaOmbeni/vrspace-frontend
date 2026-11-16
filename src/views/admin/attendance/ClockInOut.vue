@@ -4,8 +4,8 @@ import { useAuth } from '@/composables/useAuth'
 import { useGeolocation } from '@/composables/useGeolocation'
 import { getTodayRecord, clockIn, clockOut, getEmployeeHours, listMissedClockOuts } from '@/services/attendanceService'
 import { getShopLocation, getSetting } from '@/services/settingsService'
-import { formatHoursOrDash as formatHours } from '@/utils/format'
-import { toDateStr, monthStartOf, shiftMonth, monthRange } from '@/utils/date'
+import { formatHoursOrDash as formatHours, formatTime, formatInstantDate } from '@/utils/format'
+import { todayEAT, monthStartOf, shiftMonth, monthRange } from '@/utils/date'
 import { isLateClockIn, hourlyRateFrom, overtimePay as calcOvertimePay, sumAttendance } from '@/utils/payroll'
 import { toast } from 'vue-sonner'
 
@@ -36,13 +36,6 @@ const salary = computed(() => Number(profile.value?.salary || 0))
 const isLate = computed(() => isLateClockIn(record.value?.clock_in, workingHours.value))
 const overtimePay = computed(() => calcOvertimePay(monthlyOvertime.value, hourlyRate.value))
 const totalPay = computed(() => salary.value + overtimePay.value)
-
-function formatTime(dateStr) {
-  return new Date(dateStr).toLocaleTimeString('en-KE', {
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
 
 function updateElapsed() {
   if (!record.value?.clock_in || record.value.clock_out) {
@@ -129,7 +122,7 @@ async function loadRecord() {
   try {
     const now = new Date()
     const thisMonth = monthStartOf(now)
-    const today = toDateStr(now)
+    const today = todayEAT(now)
     const oldestMonth = shiftMonth(thisMonth, -3)
 
     const [rec, loc, history, settings, missed] = await Promise.all([
@@ -248,7 +241,7 @@ onUnmounted(stopTimer)
         <div class="flex flex-col items-center justify-center md:bg-white md:rounded-2xl md:shadow-soft md:p-8">
           <!-- Date -->
           <p class="text-sm text-gray-500 mb-2">
-            {{ new Date().toLocaleDateString('en-KE', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) }}
+            {{ formatInstantDate(new Date(), { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) }}
           </p>
 
           <!-- Elapsed timer -->

@@ -8,7 +8,8 @@ import {
   getMonthStatus, getMonthlyVRRevenue, getCumulativeFinanceThroughMonth, closeMonth, reopenMonth,
   recalculateSalaries,
 } from '@/services/financeService'
-import { formatPrice } from '@/utils/format'
+import { formatPrice, formatInstantDate } from '@/utils/format'
+import { monthStartOf } from '@/utils/date'
 import { financeTotals } from '@/utils/finance'
 import { toast } from 'vue-sonner'
 
@@ -19,10 +20,7 @@ const router = useRouter()
 const { user, isAdmin } = useAuth()
 
 // Month state
-const now = new Date()
-const currentMonth = ref(
-  route.query.month || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
-)
+const currentMonth = ref(route.query.month || monthStartOf(new Date()))
 
 const expenses = ref([])
 const income = ref([])
@@ -219,7 +217,7 @@ onMounted(loadData)
       <div class="text-center">
         <h1 class="text-2xl font-header font-bold text-gray-900">{{ monthLabel }}</h1>
         <span v-if="isClosed" class="inline-block mt-1 px-3 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-600">
-          Closed {{ new Date(monthStatus.closed_at).toLocaleDateString('en-KE') }}
+          Closed {{ formatInstantDate(monthStatus.closed_at) }}
         </span>
       </div>
       <button @click="nextMonth" class="p-2 text-gray-400 hover:text-gray-600">

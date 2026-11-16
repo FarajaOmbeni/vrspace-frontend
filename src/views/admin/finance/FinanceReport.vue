@@ -2,13 +2,14 @@
 import { ref, computed, onMounted } from 'vue'
 import { getFinanceReport } from '@/services/financeService'
 import { toast } from 'vue-sonner'
-import { formatPrice } from '@/utils/format'
+import { formatPrice, formatInstantDate } from '@/utils/format'
+import { monthStartOf } from '@/utils/date'
 
 defineOptions({ name: 'FinanceReport' })
 
-const now = new Date()
-const startMonth = ref(`${now.getFullYear()}-01-01`)
-const endMonth = ref(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`)
+const thisMonth = monthStartOf(new Date())
+const startMonth = ref(`${thisMonth.slice(0, 4)}-01-01`)
+const endMonth = ref(thisMonth)
 
 const report = ref(null)
 const loading = ref(false)
@@ -19,9 +20,13 @@ function formatMonthLabel(month) {
   return new Date(y, m - 1, 1).toLocaleDateString('en-KE', { month: 'short', year: 'numeric' })
 }
 
-function formatDate(dateStr) {
-  const d = new Date(dateStr)
-  return d.toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })
+// Items are either a 'YYYY-MM-DD' day (VR revenue) or a created_at timestamp.
+function formatDate(value) {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [y, m, d] = value.split('-').map(Number)
+    return new Date(y, m - 1, d).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })
+  }
+  return formatInstantDate(value)
 }
 
 function monthInputValue(month) {

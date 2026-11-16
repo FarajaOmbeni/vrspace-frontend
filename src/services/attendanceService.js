@@ -1,9 +1,9 @@
 import { supabase } from '@/lib/supabase'
-import { dbToday } from '@/utils/date'
+import { todayEAT } from '@/utils/date'
 import { fetchAll } from '@/lib/fetchAll'
 
 export async function getTodayRecord(employeeId) {
-  const today = dbToday()
+  const today = todayEAT()
 
   const { data, error } = await supabase
     .from('attendance')
@@ -17,7 +17,7 @@ export async function getTodayRecord(employeeId) {
 }
 
 export async function clockIn(employeeId) {
-  const today = dbToday()
+  const today = todayEAT()
 
   const { data, error } = await supabase
     .from('attendance')
@@ -41,7 +41,7 @@ export async function listMissedClockOuts(employeeId) {
     .from('attendance')
     .select('*, profiles:employee_id(full_name)')
     .is('clock_out', null)
-    .lt('date', dbToday())
+    .lt('date', todayEAT())
     .order('date', { ascending: false })
 
   if (employeeId) query = query.eq('employee_id', employeeId)

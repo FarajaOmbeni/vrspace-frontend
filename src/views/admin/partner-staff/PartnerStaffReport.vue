@@ -3,14 +3,14 @@ import { ref, onMounted } from 'vue'
 import { getPartnerStaffReport } from '@/services/partnerStaffService'
 import { toast } from 'vue-sonner'
 import { formatPrice } from '@/utils/format'
-import { dbToday } from '@/utils/date'
+import { todayEAT } from '@/utils/date'
 
 defineOptions({ name: 'PartnerStaffReport' })
 
 const report = ref([])
 const loading = ref(false)
 
-const today = dbToday()
+const today = todayEAT()
 const startDate = ref(today)
 const endDate = ref(today)
 

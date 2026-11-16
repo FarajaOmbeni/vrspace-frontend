@@ -1,9 +1,10 @@
 import { describe, it, expect } from 'vitest'
 import { formatPrice, formatHours, formatHoursOrDash } from '../format'
-import { toDateStr, dbToday, monthRange, shiftMonth, periodRange } from '../date'
+import { toDateStr, todayEAT, addDays, monthStartOf, monthRange, shiftMonth, periodRange, zonedParts } from '../date'
 import { effectiveGross, ourShare, partnerDifference, financeTotals } from '../finance'
+import { formatTime, formatInstantDate } from '../format'
 import {
-  isLateClockIn, closingTimeOn, zonedParts, hoursForDay, hourlyRateFrom,
+  isLateClockIn, closingTimeOn, hoursForDay, hourlyRateFrom,
   overtimePay, sumAttendance, buildSalaryRows,
 } from '../payroll'
 
@@ -26,14 +27,23 @@ describe('format', () => {
   })
 })
 
-describe('date', () => {
-  it('uses the local calendar date, not UTC', () => {
-    // Local midnight on the 1st must stay the 1st (toISOString would give the 31st in UTC+3).
-    expect(toDateStr(new Date(2026, 10, 1))).toBe('2026-11-01')
+describe('date (always EAT, UTC+3)', () => {
+  it('gives the EAT calendar date of an instant', () => {
+    // 21:30 UTC on the 31st is 00:30 EAT on the 1st.
+    expect(toDateStr('2026-10-31T21:30:00Z')).toBe('2026-11-01')
+    expect(toDateStr('2026-10-31T20:59:00Z')).toBe('2026-10-31')
+    expect(monthStartOf('2026-10-31T21:30:00Z')).toBe('2026-11-01')
   })
 
-  it('dbToday is the UTC date', () => {
-    expect(dbToday(new Date('2026-11-16T22:30:00Z'))).toBe('2026-11-16')
+  it("todayEAT rolls over at midnight Nairobi time, not UTC", () => {
+    expect(todayEAT(new Date('2026-11-16T20:59:00Z'))).toBe('2026-11-16') // 23:59 EAT
+    expect(todayEAT(new Date('2026-11-16T21:00:00Z'))).toBe('2026-11-17') // 00:00 EAT
+  })
+
+  it('adds days across month and year ends', () => {
+    expect(addDays('2026-11-30', 1)).toBe('2026-12-01')
+    expect(addDays('2027-01-01', -1)).toBe('2026-12-31')
+    expect(addDays('2026-11-17', -7)).toBe('2026-11-10')
   })
 
   it('handles month ranges and shifting across years', () => {
@@ -44,15 +54,25 @@ describe('date', () => {
     expect(shiftMonth('2026-12-01', 1)).toBe('2027-01-01')
   })
 
-  it('builds report periods', () => {
-    const wed = new Date(2026, 10, 18, 15, 0) // Wed 18 Nov 2026
+  it('builds report periods from the EAT date', () => {
+    const wed = new Date('2026-11-18T12:00:00Z') // Wed 18 Nov, 15:00 EAT
     expect(periodRange('week', {}, wed)).toEqual({ startDate: '2026-11-16', endDate: '2026-11-18' })
-    const sun = new Date(2026, 10, 22, 15, 0)
+    const sun = new Date('2026-11-22T12:00:00Z')
     expect(periodRange('week', {}, sun).startDate).toBe('2026-11-16')
+    // Sun 22 Nov 22:30 UTC is already Mon 23 Nov in EAT: a new week starts.
+    expect(periodRange('week', {}, new Date('2026-11-22T22:30:00Z'))).toEqual({ startDate: '2026-11-23', endDate: '2026-11-23' })
     expect(periodRange('month', {}, wed)).toEqual({ startDate: '2026-11-01', endDate: '2026-11-18' })
     expect(periodRange('last-month', {}, wed)).toEqual({ startDate: '2026-10-01', endDate: '2026-10-31' })
-    expect(periodRange('last-month', {}, new Date(2026, 0, 10))).toEqual({ startDate: '2025-12-01', endDate: '2025-12-31' })
+    expect(periodRange('last-month', {}, new Date('2026-01-10T12:00:00Z'))).toEqual({ startDate: '2025-12-01', endDate: '2025-12-31' })
+    // 31 Oct 22:00 UTC is 1 Nov in EAT, so "this month" is November.
+    expect(periodRange('month', {}, new Date('2026-10-31T22:00:00Z'))).toEqual({ startDate: '2026-11-01', endDate: '2026-11-01' })
     expect(periodRange('custom', { start: '2026-01-05', end: '' })).toEqual({ startDate: '2026-01-05', endDate: undefined })
+  })
+
+  it('formats times and dates in EAT', () => {
+    expect(formatTime('2026-11-17T07:05:00Z')).toBe('10:05')
+    expect(formatTime(null)).toBe('—')
+    expect(formatInstantDate('2026-11-16T22:00:00Z')).toBe('17 Nov 2026')
   })
 })
 

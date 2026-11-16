@@ -101,7 +101,7 @@
 
         <!-- Copyright Section -->
         <div class="text-center text-white text-xs sm:text-sm border-t border-blue-800 pt-6">
-          <p>&copy; 2023-{{ new Date().getFullYear() }} VR Space. All rights reserved.</p>
+          <p>&copy; 2023-{{ currentYear }} VR Space. All rights reserved.</p>
         </div>
       </div>
     </div>
@@ -111,6 +111,9 @@
 <script setup>
 import QuickLink from '@/Shared/QuickLink.vue';
 import { business } from '@/config/business';
+import { todayEAT } from '@/utils/date';
+
+const currentYear = todayEAT().slice(0, 4);
 
 // Component name definition
 defineOptions({

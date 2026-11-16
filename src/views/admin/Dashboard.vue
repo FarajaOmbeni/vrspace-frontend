@@ -5,8 +5,8 @@ import { listAttendance, getEmployeeHours, listMissedClockOuts } from '@/service
 import { getTodayTotals } from '@/services/sessionService'
 import { getDiscrepancies, listDailySales } from '@/services/salesService'
 import { listMonthlyExpenses, getMonthlyVRRevenue, listAdditionalIncome } from '@/services/financeService'
-import { formatPrice, formatHours } from '@/utils/format'
-import { toDateStr, dbToday, monthStartOf } from '@/utils/date'
+import { formatPrice, formatHours, formatTime } from '@/utils/format'
+import { todayEAT, addDays, monthStartOf } from '@/utils/date'
 import { financeTotals, partnerDifference } from '@/utils/finance'
 
 defineOptions({ name: 'AdminDashboard' })
@@ -36,13 +36,6 @@ function formatDate(dateStr) {
   })
 }
 
-function formatTime(dateStr) {
-  return new Date(dateStr).toLocaleTimeString('en-KE', {
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
-
 /** Runs a request; on failure marks `section` as failed and returns null. */
 function attempt(section, promise) {
   return promise.catch((e) => {
@@ -57,13 +50,12 @@ async function loadData() {
   failed.value = {}
 
   const now = new Date()
-  const today = toDateStr(now)
-  const weekAgo = toDateStr(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7))
+  const today = todayEAT(now)
+  const weekAgo = addDays(today, -7)
   const monthStart = monthStartOf(now)
 
   const [attendance, missed, totals, discrepancies, monthlyHours, expenses, vrRevenue, additionalIncome, dailySales] = await Promise.all([
-    // attendance.date is stored as the UTC date, so "today's" rows use dbToday().
-    attempt('attendance', listAttendance({ startDate: dbToday(), endDate: dbToday() })),
+    attempt('attendance', listAttendance({ startDate: today, endDate: today })),
     attempt('missed', listMissedClockOuts()),
     attempt('sessions', getTodayTotals()),
     attempt('discrepancies', getDiscrepancies({ startDate: weekAgo, endDate: today })),

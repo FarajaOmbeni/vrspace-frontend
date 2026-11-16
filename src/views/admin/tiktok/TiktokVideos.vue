@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { toast } from 'vue-sonner'
+import { VENUE_TZ } from '@/utils/date'
 import { listTiktokVideosAdmin, addTiktokVideo, deleteTiktokVideo } from '@/services/tiktokService'
 
 defineOptions({ name: 'TiktokVideos' })
@@ -18,6 +19,7 @@ function formatDate(dateStr) {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
+    timeZone: VENUE_TZ,
   })
 }
 

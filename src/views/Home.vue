@@ -400,6 +400,7 @@ import HomeOdd from '@/Shared/HomeOdd.vue';
 import HomeEven from '@/Shared/HomeEven.vue';
 import { RouterLink } from 'vue-router';
 import { business, mainPhone } from '@/config/business';
+import { todayEAT } from '@/utils/date';
 
 // Component name definition
 defineOptions({
@@ -418,8 +419,8 @@ function extractVideoId(url) {
 }
 
 function getDailyPicks(items, count) {
-  const today = new Date();
-  const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+  // Same 3 videos all day (EAT), a new set each day.
+  const seed = Number(todayEAT().replaceAll('-', ''));
   const shuffled = [...items];
   let s = seed;
   for (let i = shuffled.length - 1; i > 0; i--) {

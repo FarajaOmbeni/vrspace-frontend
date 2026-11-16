@@ -41,7 +41,7 @@ async function loadSettings() {
       if (hours.schedule) {
         hoursForm.value = {
           hourly_rate: hours.hourly_rate || 400,
-          timezone: hours.timezone || 'Africa/Nairobi',
+          timezone: 'Africa/Nairobi',
           schedule: { ...defaultSchedule(), ...hours.schedule },
         }
       } else {
@@ -50,7 +50,7 @@ async function loadSettings() {
         const closeStr = `${String(hours.closing_hour || 22).padStart(2, '0')}:00`
         hoursForm.value = {
           hourly_rate: hours.hourly_rate || 400,
-          timezone: hours.timezone || 'Africa/Nairobi',
+          timezone: 'Africa/Nairobi',
           schedule: Object.fromEntries(days.map((d) => [d, { open: openStr, close: closeStr }])),
         }
       }
@@ -259,21 +259,7 @@ onMounted(loadSettings)
         </div>
 
         <!-- Timezone -->
-        <div>
-          <label for="timezone" class="block text-sm font-medium text-gray-700 mb-1">Timezone</label>
-          <select
-            id="timezone"
-            v-model="hoursForm.timezone"
-            class="w-full rounded-xl border-gray-300 px-4 py-3 text-base focus:border-purple-500 focus:ring-purple-500"
-          >
-            <option value="Africa/Nairobi">Africa/Nairobi (EAT, UTC+3)</option>
-            <option value="Africa/Dar_es_Salaam">Africa/Dar es Salaam (EAT, UTC+3)</option>
-            <option value="Africa/Kampala">Africa/Kampala (EAT, UTC+3)</option>
-            <option value="Africa/Lagos">Africa/Lagos (WAT, UTC+1)</option>
-            <option value="Africa/Johannesburg">Africa/Johannesburg (SAST, UTC+2)</option>
-            <option value="UTC">UTC</option>
-          </select>
-        </div>
+        <p class="text-sm text-gray-500">All times are East Africa Time (Nairobi, UTC+3).</p>
       </div>
 
       <button

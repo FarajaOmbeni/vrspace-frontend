@@ -6,7 +6,7 @@ import { getDailySales, updatePartnerRevenue, getMissingPartnerReports } from '@
 import { getSessionsByDate } from '@/services/sessionService'
 import { toast } from 'vue-sonner'
 import { formatPrice } from '@/utils/format'
-import { dbToday } from '@/utils/date'
+import { todayEAT } from '@/utils/date'
 
 defineOptions({ name: 'DailySalesForm' })
 
@@ -14,7 +14,7 @@ const route = useRoute()
 const { user, isAdmin } = useAuth()
 
 // Use query param date if provided, otherwise default to today
-const selectedDate = ref(route.query.date || dbToday())
+const selectedDate = ref(route.query.date || todayEAT())
 
 const dailySales = ref(null)
 const sessions = ref([])

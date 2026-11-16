@@ -1,53 +1,17 @@
 // Working hours, lateness and pay. `workingHours` is the 'working_hours'
 // setting: { hourly_rate, timezone, schedule: { monday: { open: '11:00', close: '22:00' }, ... } }
 // (older installs may have { opening_hour, closing_hour } instead of schedule).
+// All times are East Africa Time.
 
 import { formatHours } from './format'
+import { VENUE_TZ, zonedParts, zonedTimeToDate } from './date'
 
-export const DEFAULT_TIMEZONE = 'Africa/Nairobi'
 export const DEFAULT_HOURLY_RATE = 400
 const DEFAULT_OPEN = 11 * 60
 const DEFAULT_CLOSE = 22 * 60
 
 export function hourlyRateFrom(workingHours) {
   return Number(workingHours?.hourly_rate) || DEFAULT_HOURLY_RATE
-}
-
-export function timezoneFrom(workingHours) {
-  return workingHours?.timezone || DEFAULT_TIMEZONE
-}
-
-/** Wall-clock view of an instant in a time zone: date, weekday name, minutes after midnight. */
-export function zonedParts(instant, tz = DEFAULT_TIMEZONE) {
-  const parts = Object.fromEntries(
-    new Intl.DateTimeFormat('en-US', {
-      timeZone: tz,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      weekday: 'long',
-      hourCycle: 'h23',
-    })
-      .formatToParts(new Date(instant))
-      .map((p) => [p.type, p.value])
-  )
-  return {
-    date: `${parts.year}-${parts.month}-${parts.day}`,
-    weekday: parts.weekday.toLowerCase(),
-    minutes: Number(parts.hour) * 60 + Number(parts.minute),
-  }
-}
-
-/** The instant when the wall clock in `tz` reads `minutes` after midnight on `dateStr`. */
-export function zonedTimeToDate(dateStr, minutes, tz = DEFAULT_TIMEZONE) {
-  const [y, mo, d] = dateStr.split('-').map(Number)
-  const guess = Date.UTC(y, mo - 1, d, Math.floor(minutes / 60), minutes % 60)
-  const wall = zonedParts(guess, tz)
-  const [wy, wmo, wd] = wall.date.split('-').map(Number)
-  const wallAsUtc = Date.UTC(wy, wmo - 1, wd, Math.floor(wall.minutes / 60), wall.minutes % 60)
-  return new Date(guess - (wallAsUtc - guess))
 }
 
 function parseHHMM(value) {
@@ -73,18 +37,18 @@ export function hoursForDay(workingHours, weekday) {
   }
 }
 
-/** True when someone clocked in after that day's opening time (venue time zone). */
+/** True when someone clocked in after that day's opening time (EAT). */
 export function isLateClockIn(clockIn, workingHours) {
   if (!clockIn) return false
-  const { weekday, minutes } = zonedParts(clockIn, timezoneFrom(workingHours))
+  const { weekday, minutes } = zonedParts(clockIn, VENUE_TZ)
   return minutes > hoursForDay(workingHours, weekday).open
 }
 
-/** Closing time on a given calendar date, as an instant. */
+/** Closing time (EAT) on a given calendar date, as an instant. */
 export function closingTimeOn(dateStr, workingHours) {
   const [y, m, d] = dateStr.split('-').map(Number)
   const weekday = WEEKDAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]
-  return zonedTimeToDate(dateStr, hoursForDay(workingHours, weekday).close, timezoneFrom(workingHours))
+  return zonedTimeToDate(dateStr, hoursForDay(workingHours, weekday).close, VENUE_TZ)
 }
 
 export function overtimePay(overtimeHours, hourlyRate) {
