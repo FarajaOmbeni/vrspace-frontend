@@ -1,11 +1,10 @@
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { useRouter } from 'vue-router'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'vue-sonner'
 
 const router = useRouter()
-const route = useRoute()
 
 const password = ref('')
 const confirmPassword = ref('')

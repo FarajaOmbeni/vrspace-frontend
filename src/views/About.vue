@@ -97,7 +97,7 @@ defineOptions({
 
 <style scoped>
 .hero {
-  background-image: url('@/assets/images/about_us/about_us.png');
+  background-image: url('@/assets/images/about_us/about_us.webp');
   background-position: center;
   background-size: cover;
 }

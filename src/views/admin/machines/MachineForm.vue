@@ -16,6 +16,8 @@ const form = ref({
   is_active: true,
   image_url: null,
 })
+// ID for a new machine, fixed for the life of the form so retries reuse it.
+const newMachineId = crypto.randomUUID()
 const imageFile = ref(null)
 const imagePreview = ref(null)
 const loading = ref(false)
@@ -77,12 +79,10 @@ async function handleSubmit() {
       await updateMachine(route.params.id, form.value)
       toast.success(`${form.value.name} updated`)
     } else {
-      // Create first, then upload image with the new ID
-      const machine = await createMachine(form.value)
-      if (imageFile.value) {
-        const imageUrl = await uploadMachineImage(imageFile.value, machine.id)
-        await updateMachine(machine.id, { image_url: imageUrl })
-      }
+      // Upload first, then create in one step: a failed upload leaves
+      // nothing behind, and a retry reuses the same id.
+      const imageUrl = imageFile.value ? await uploadMachineImage(imageFile.value, newMachineId) : form.value.image_url
+      await createMachine({ ...form.value, id: newMachineId, image_url: imageUrl })
       toast.success(`${form.value.name} added`)
     }
     router.push('/admin/machines')
@@ -173,6 +173,7 @@ onMounted(() => {
           id="price"
           v-model.number="form.price_per_session"
           type="number"
+          inputmode="decimal"
           required
           min="0"
           step="50"
@@ -187,7 +188,7 @@ onMounted(() => {
           type="button"
           @click="form.is_active = !form.is_active"
           :class="[
-            'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
+            'relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors tap-target',
             form.is_active ? 'bg-green-500' : 'bg-gray-300',
           ]"
         >

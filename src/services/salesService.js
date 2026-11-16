@@ -13,15 +13,33 @@ export async function getDailySales(date) {
 
 export async function updatePartnerRevenue(date, partnerRevenue, loggedBy, notes) {
   // First ensure daily_sales row exists by calling compute function
-  await supabase.rpc('compute_daily_sales', { p_date: date })
+  const { error: rpcError } = await supabase.rpc('compute_daily_sales', { p_date: date })
+  if (rpcError) throw rpcError
+
+  const existing = await getDailySales(date)
+
+  const changes = {
+    partner_reported_revenue: partnerRevenue,
+    logged_by: loggedBy,
+    notes: notes || null,
+  }
+
+  // A new partner figure means a new discrepancy: any earlier resolution no
+  // longer applies, so it needs reviewing again.
+  const previous = existing?.partner_reported_revenue
+  const figureChanged = previous == null || Number(previous) !== Number(partnerRevenue)
+  if (existing?.discrepancy_resolved && figureChanged) {
+    Object.assign(changes, {
+      discrepancy_resolved: false,
+      resolved_at: null,
+      resolved_by: null,
+      resolved_with: null,
+    })
+  }
 
   const { data, error } = await supabase
     .from('daily_sales')
-    .update({
-      partner_reported_revenue: partnerRevenue,
-      logged_by: loggedBy,
-      notes: notes || null,
-    })
+    .update(changes)
     .eq('date', date)
     .select()
     .single()
@@ -72,11 +90,27 @@ export async function getDiscrepancies({ startDate, endDate, showResolved = fals
   return data
 }
 
-export async function getMissingPartnerReports(startDate) {
+/**
+ * Days with sessions but no partner figure yet. Counts from the first day the
+ * partner ever reported (when reconciliation started), so older days from
+ * before then aren't flagged.
+ */
+export async function getMissingPartnerReports() {
+  const { data: first, error: firstError } = await supabase
+    .from('daily_sales')
+    .select('date')
+    .not('partner_reported_revenue', 'is', null)
+    .order('date', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+
+  if (firstError) throw firstError
+  if (!first) return [] // partner has never reported: nothing to chase yet
+
   const { data, error } = await supabase
     .from('daily_sales')
     .select('date')
-    .gte('date', startDate)
+    .gte('date', first.date)
     .is('partner_reported_revenue', null)
     .gt('total_revenue', 0)
     .order('date', { ascending: false })

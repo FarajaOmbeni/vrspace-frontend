@@ -35,3 +35,6 @@ supabase/.temp/
 *.sw?
 
 *.tsbuildinfo
+
+# Vite leaves these behind when a config reload is interrupted
+vite.config.js.timestamp-*

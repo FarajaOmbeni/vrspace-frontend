@@ -4,6 +4,8 @@ import { Bar } from 'vue-chartjs'
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip } from 'chart.js'
 import ChartDataLabels from 'chartjs-plugin-datalabels'
 import { getMachineRevenue } from '@/services/sessionService'
+import { formatPrice } from '@/utils/format'
+import { periodRange } from '@/utils/date'
 import { toast } from 'vue-sonner'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip)
@@ -18,40 +20,7 @@ const filterStartDate = ref('')
 const filterEndDate = ref('')
 
 function getDateRange() {
-  const now = new Date()
-  let start, end
-
-  if (filterPeriod.value === 'week') {
-    const day = now.getDay()
-    start = new Date(now)
-    start.setDate(now.getDate() - (day === 0 ? 6 : day - 1))
-    end = now
-  } else if (filterPeriod.value === 'month') {
-    start = new Date(now.getFullYear(), now.getMonth(), 1)
-    end = now
-  } else if (filterPeriod.value === 'last-month') {
-    start = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-    end = new Date(now.getFullYear(), now.getMonth(), 0)
-  } else {
-    start = filterStartDate.value ? new Date(filterStartDate.value) : null
-    end = filterEndDate.value ? new Date(filterEndDate.value) : null
-  }
-
-  function toDateStr(d) {
-    const y = d.getFullYear()
-    const m = String(d.getMonth() + 1).padStart(2, '0')
-    const day = String(d.getDate()).padStart(2, '0')
-    return `${y}-${m}-${day}`
-  }
-
-  return {
-    startDate: start ? toDateStr(start) : undefined,
-    endDate: end ? toDateStr(end) : undefined,
-  }
-}
-
-function formatPrice(amount) {
-  return Number(amount).toLocaleString('en-KE')
+  return periodRange(filterPeriod.value, { start: filterStartDate.value, end: filterEndDate.value })
 }
 
 const chartData = computed(() => ({

@@ -1,9 +1,9 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { createOneOffExpense, createWriteOffExpense, updateExpense, uploadReceipt } from '@/services/financeService'
-import { supabase } from '@/lib/supabase'
+import { createOneOffExpense, createWriteOffExpense, getExpense, updateExpense, uploadReceipt } from '@/services/financeService'
 import { toast } from 'vue-sonner'
+import { monthStartOf } from '@/utils/date'
 
 defineOptions({ name: 'ExpenseForm' })
 
@@ -16,13 +16,15 @@ const form = ref({
   amount: 0,
   receipt_url: null,
 })
+// ID for a new expense, fixed for the life of the form so retries reuse it.
+const newExpenseId = crypto.randomUUID()
 const receiptFile = ref(null)
 const receiptPreview = ref(null)
 const loading = ref(false)
 const loadingData = ref(false)
 
 // Month from query param or current month
-const month = computed(() => route.query.month || new Date().toISOString().slice(0, 7) + '-01')
+const month = computed(() => route.query.month || monthStartOf(new Date()))
 const expenseType = computed(() => route.query.type === 'write_off' ? 'write_off' : 'one_off')
 const isWriteOff = computed(() => expenseType.value === 'write_off')
 
@@ -46,18 +48,13 @@ function removeReceipt() {
 async function loadExpense() {
   loadingData.value = true
   try {
-    const { data, error } = await supabase
-      .from('monthly_expenses')
-      .select('*')
-      .eq('id', route.params.id)
-      .single()
-    if (error) throw error
+    const data = await getExpense(route.params.id)
     form.value = {
       description: data.description,
       amount: Number(data.amount),
       receipt_url: data.receipt_url,
     }
-    if (data.receipt_url) receiptPreview.value = data.receipt_url
+    if (data.receipt_view_url) receiptPreview.value = data.receipt_view_url
   } catch (e) {
     toast.error('Failed to load expense')
     router.back()
@@ -80,16 +77,17 @@ async function handleSubmit() {
       await updateExpense(route.params.id, form.value)
       toast.success('Expense updated')
     } else {
+      // Upload first, then save the expense in one step: a failed upload
+      // leaves nothing behind, and a retry reuses the same id.
+      const receiptUrl = receiptFile.value ? await uploadReceipt(receiptFile.value, newExpenseId) : null
       const createFn = isWriteOff.value ? createWriteOffExpense : createOneOffExpense
-      const expense = await createFn({
+      await createFn({
+        id: newExpenseId,
         month: month.value,
         description: form.value.description,
         amount: form.value.amount,
+        receipt_url: receiptUrl,
       })
-      if (receiptFile.value) {
-        const url = await uploadReceipt(receiptFile.value, expense.id)
-        await updateExpense(expense.id, { receipt_url: url })
-      }
       toast.success('Expense added')
     }
     router.push({ path: '/admin/finance', query: { month: month.value } })
@@ -155,6 +153,7 @@ onMounted(() => {
           id="amount"
           v-model.number="form.amount"
           type="number"
+          inputmode="decimal"
           required
           min="0"
           step="1"

@@ -15,10 +15,10 @@
             class="text-white flex justify-center items-center rounded-full bg-purple w-full sm:w-auto h-14 md:h-16 py-3 px-6 md:px-8 text-lg md:text-xl font-bold transition-all duration-300 hover:opacity-90 hover:shadow-lg">
             Explore Experiences
           </RouterLink>
-          <RouterLink to="/contact"
+          <a :href="business.mapsUrl" target="_blank" rel="noopener noreferrer"
             class="text-white flex justify-center items-center rounded-full bg-blue w-full sm:w-auto h-14 md:h-16 py-3 px-6 md:px-8 text-lg md:text-xl font-bold transition-all duration-300 hover:opacity-90 hover:shadow-lg">
-            Book Now
-          </RouterLink>
+            Get Directions
+          </a>
         </div>
       </div>
     </div>
@@ -54,28 +54,29 @@
       <p class="text-lg max-w-3xl mx-auto">Choose from our premium selection of virtual reality experiences available at VR Space since February 2023</p>
     </div>
 
-    <HomeOdd
+    <HomeFeature
       title="HTC Vive VR"
       :image_link="htc"
       description="Experience premium interactive VR games with our high-quality HTC Vive headsets. Choose from a wide variety of games including boxing, shooting, horror, and children's games suitable for all ages."
-      link="/contact"
-      button="Book This Experience"
+      :link="business.mapsUrl"
+      button="Get Directions"
     />
 
-    <HomeEven
+    <HomeFeature
+      reverse
       title="Egg Rollercoaster VR"
       :image_link="eggvr"
       description="Feel the adrenaline rush of our Egg Rollercoaster VR experiences. These dynamic motion platforms offer thrilling adventures across multiple genres, from heart-racing horror to breathtaking height experiences."
-      link="/contact"
-      button="Book This Experience"
+      :link="business.mapsUrl"
+      button="Get Directions"
     />
 
-    <HomeOdd
+    <HomeFeature
       title="GT Racing Simulator"
       :image_link="gtr"
       description="Take the wheel in our high-performance GT Racing simulators. Experience the thrill of racing at speeds up to 300km/h with zero risk, suitable for all skill levels."
-      link="/contact"
-      button="Book This Experience"
+      :link="business.mapsUrl"
+      button="Get Directions"
     />
   </section>
 
@@ -87,28 +88,29 @@
       <p class="text-lg max-w-3xl mx-auto">Not just VR — level up with our console gaming experiences featuring the latest platforms and hottest titles</p>
     </div>
 
-    <HomeOdd
+    <HomeFeature
       title="PlayStation 5"
       :image_link="ps5"
       description="The ultimate gaming showdown — grab a controller and settle the score. Play FIFA, Fortnite, GTA V, Brawlhalla, Spider-Man, The Last of Us, and Minecraft. 2 players, 30 minutes per round."
-      link="/contact"
-      button="Book This Experience"
+      :link="business.mapsUrl"
+      button="Get Directions"
     />
 
-    <HomeEven
+    <HomeFeature
+      reverse
       title="Nintendo Switch"
       :image_link="nintendo"
       description="Pick up, play, and prepare for pure joy — Nintendo magic at its finest. Mario Kart mayhem, quick rounds perfect for all ages, and the party starter everyone loves. 2 players, 10 min duo or 5 min solo."
-      link="/contact"
-      button="Book This Experience"
+      :link="business.mapsUrl"
+      button="Get Directions"
     />
 
-    <HomeOdd
+    <HomeFeature
       title="Meta Quest VR"
       :image_link="meta"
       description="Step inside the game — no wires, no limits, just pure immersion. Standalone VR with total freedom of movement, mind-blowing beat-slashing action, and worlds that feel impossibly real."
-      link="/contact"
-      button="Book This Experience"
+      :link="business.mapsUrl"
+      button="Get Directions"
     />
   </section>
 
@@ -147,9 +149,9 @@
             </div>
           </div>
 
-          <a href="/contact" class="block w-full py-3 bg-purple text-white text-center rounded-lg font-bold mt-4 hover:opacity-90 transition-opacity">
+          <RouterLink to="/contact" class="block w-full py-3 bg-purple text-white text-center rounded-lg font-bold mt-4 hover:opacity-90 transition-opacity">
             Get Notified
-          </a>
+          </RouterLink>
         </div>
       </div>
 
@@ -178,9 +180,9 @@
             </div>
           </div>
 
-          <a href="/contact" class="block w-full py-3 bg-purple text-white text-center rounded-lg font-bold mt-4 hover:opacity-90 transition-opacity">
+          <RouterLink to="/contact" class="block w-full py-3 bg-purple text-white text-center rounded-lg font-bold mt-4 hover:opacity-90 transition-opacity">
             Get Notified
-          </a>
+          </RouterLink>
         </div>
       </div>
 
@@ -209,9 +211,9 @@
             </div>
           </div>
 
-          <a href="/contact" class="block w-full py-3 bg-purple text-white text-center rounded-lg font-bold mt-4 hover:opacity-90 transition-opacity">
+          <RouterLink to="/contact" class="block w-full py-3 bg-purple text-white text-center rounded-lg font-bold mt-4 hover:opacity-90 transition-opacity">
             Get Notified
-          </a>
+          </RouterLink>
         </div>
       </div>
     </div>
@@ -238,7 +240,7 @@
             <span>{{ point }}</span>
           </li>
         </ul>
-        <button @click="activeModal = index" class="inline-block text-blue font-bold hover:text-purple transition-colors">
+        <button type="button" @click="activeModal = index" aria-haspopup="dialog" class="inline-block text-blue font-bold hover:text-purple transition-colors">
           Learn More →
         </button>
       </div>
@@ -247,11 +249,12 @@
     <!-- Service Modal -->
     <Teleport to="body">
       <div v-if="activeModal !== null" class="fixed inset-0 z-50 flex items-center justify-center p-4" @click.self="activeModal = null">
-        <div class="fixed inset-0 bg-black/50" @click="activeModal = null"></div>
-        <div class="relative bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto z-10">
-          <button @click="activeModal = null" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-2xl font-bold leading-none">&times;</button>
+        <div class="fixed inset-0 bg-black/50" aria-hidden="true" @click="activeModal = null"></div>
+        <div ref="serviceDialog" role="dialog" aria-modal="true" aria-labelledby="service-dialog-title" tabindex="-1"
+          class="relative bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto z-10 focus:outline-none">
+          <button type="button" @click="activeModal = null" aria-label="Close" class="absolute top-4 right-4 text-gray-500 hover:text-gray-700 text-2xl font-bold leading-none">&times;</button>
           <div class="p-6 sm:p-8">
-            <h3 class="text-2xl font-bold text-blue mb-4 font-header">{{ services[activeModal].title }}</h3>
+            <h3 id="service-dialog-title" class="text-2xl font-bold text-blue mb-4 font-header">{{ services[activeModal].title }}</h3>
             <p class="text-gray-700 mb-6 leading-relaxed">{{ services[activeModal].description }}</p>
 
             <h4 class="font-bold text-lg text-blue mb-3">What we provide</h4>
@@ -299,6 +302,8 @@
         <iframe
           :src="`https://www.tiktok.com/embed/v2/${videoId}`"
           style="width: 325px; height: 578px; border: none;"
+          title="VR Space TikTok video"
+          loading="lazy"
           allowfullscreen
           allow="encrypted-media"
         ></iframe>
@@ -362,11 +367,11 @@
           Visit us at The Waterfront Karen (Basement) in Nairobi and experience the future of entertainment. Adventure awaits!
         </p>
         <div class="flex flex-col sm:flex-row justify-center gap-4 mb-10">
-          <RouterLink to="/contact" class="bg-pink text-white font-bold py-3 px-8 rounded-lg transition-all duration-300 hover:shadow-lg hover:opacity-90">
-            Book Your Session
-          </RouterLink>
-          <a href="tel:+254729054606" class="bg-transparent border-2 border-white text-white font-bold py-3 px-8 rounded-lg transition-all duration-300 hover:shadow-lg hover:bg-white/10">
-            Call Us
+          <a :href="business.mapsUrl" target="_blank" rel="noopener noreferrer" class="bg-pink text-blue font-bold py-3 px-8 rounded-lg transition-all duration-300 hover:shadow-lg hover:opacity-90">
+            Get Directions
+          </a>
+          <a :href="mainPhone.tel" class="bg-transparent border-2 border-white text-white font-bold py-3 px-8 rounded-lg transition-all duration-300 hover:shadow-lg hover:bg-white/10">
+            Call {{ mainPhone.display }}
           </a>
         </div>
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-white">
@@ -393,11 +398,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import HomeOdd from '@/Shared/HomeOdd.vue';
-import HomeEven from '@/Shared/HomeEven.vue';
+import { ref, computed, onMounted } from 'vue';
+import HomeFeature from '@/Shared/HomeFeature.vue';
+import { useDialog } from '@/Shared/useDialog';
 import { RouterLink } from 'vue-router';
-import { listTiktokVideos } from '@/services/tiktokService';
+import { business, mainPhone } from '@/config/business';
+import { todayEAT } from '@/utils/date';
 
 // Component name definition
 defineOptions({
@@ -405,6 +411,8 @@ defineOptions({
 });
 
 const activeModal = ref(null);
+const serviceDialog = ref(null);
+useDialog(computed(() => activeModal.value !== null), serviceDialog, () => { activeModal.value = null; });
 
 // --- TikTok ---
 const tiktokPicks = ref([]);
@@ -416,8 +424,8 @@ function extractVideoId(url) {
 }
 
 function getDailyPicks(items, count) {
-  const today = new Date();
-  const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+  // Same 3 videos all day (EAT), a new set each day.
+  const seed = Number(todayEAT().replaceAll('-', ''));
   const shuffled = [...items];
   let s = seed;
   for (let i = shuffled.length - 1; i > 0; i--) {
@@ -430,6 +438,8 @@ function getDailyPicks(items, count) {
 
 async function loadTiktokVideos() {
   try {
+    // Loaded on demand so the Supabase client isn't part of the page every visitor downloads first.
+    const { listTiktokVideos } = await import('@/services/tiktokService');
     const allVideos = await listTiktokVideos();
     if (!allVideos.length) return;
     const picks = getDailyPicks(allVideos, 3);
@@ -507,17 +517,17 @@ const services = [
 ];
 
 // Images
-import htc from '@/assets/images/experiences/htc.jpg';
-import eggvr from '@/assets/images/experiences/eggvr.jpg';
-import gtr from '@/assets/images/experiences/gt.jpg';
-import ps5 from '@/assets/images/experiences/ps5.jpg';
-import nintendo from '@/assets/images/experiences/nintendo.png';
-import meta from '@/assets/images/experiences/meta.jpg';
+import htc from '@/assets/images/experiences/htc.webp';
+import eggvr from '@/assets/images/experiences/eggvr.webp';
+import gtr from '@/assets/images/experiences/gt.webp';
+import ps5 from '@/assets/images/experiences/ps5.webp';
+import nintendo from '@/assets/images/experiences/nintendo.webp';
+import meta from '@/assets/images/experiences/meta.webp';
 </script>
 
 <style scoped>
 .hero {
-  background-image: url('@/assets/images/home/hero_bg.png');
+  background-image: url('@/assets/images/home/hero_bg.webp');
   background-position: center;
   background-size: cover;
   position: relative;

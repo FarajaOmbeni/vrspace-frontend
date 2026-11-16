@@ -1,7 +1,11 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import { toast } from 'vue-sonner'
+import { VENUE_TZ } from '@/utils/date'
+import { useConfirm } from '@/composables/useConfirm'
 import { listTiktokVideosAdmin, addTiktokVideo, deleteTiktokVideo } from '@/services/tiktokService'
+
+const { confirm } = useConfirm()
 
 defineOptions({ name: 'TiktokVideos' })
 
@@ -18,6 +22,7 @@ function formatDate(dateStr) {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
+    timeZone: VENUE_TZ,
   })
 }
 
@@ -62,6 +67,12 @@ async function handleAdd() {
 }
 
 async function handleDelete(id) {
+  const ok = await confirm({
+    title: 'Remove this video?',
+    message: 'It will no longer appear on the homepage.',
+    confirmLabel: 'Remove',
+  })
+  if (!ok) return
   deletingId.value = id
   try {
     await deleteTiktokVideo(id)
@@ -118,8 +129,30 @@ onMounted(loadVideos)
       <p class="text-gray-400 text-sm mt-1">Add TikTok video URLs above to feature them on the homepage</p>
     </div>
 
-    <!-- Table -->
-    <div v-else class="bg-white rounded-xl shadow-soft overflow-hidden">
+    <template v-else>
+    <!-- Mobile: cards -->
+    <div class="md:hidden space-y-2">
+      <div v-for="(video, index) in videos" :key="video.id" class="bg-white rounded-xl shadow-soft p-3 flex items-center gap-3">
+        <span class="text-sm text-gray-400 w-5 flex-shrink-0">{{ index + 1 }}</span>
+        <div class="min-w-0 flex-1">
+          <a :href="video.url" target="_blank" rel="noopener noreferrer" class="block text-sm text-blue truncate">{{ video.url }}</a>
+          <p class="text-xs text-gray-400 mt-0.5">Added {{ formatDate(video.created_at) }}</p>
+        </div>
+        <button
+          @click="handleDelete(video.id)"
+          :disabled="deletingId === video.id"
+          class="w-11 h-11 flex-shrink-0 flex items-center justify-center rounded-full text-red-400 hover:text-red-600 hover:bg-red-50 disabled:opacity-50"
+          aria-label="Remove video"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Desktop: table -->
+    <div class="hidden md:block bg-white rounded-xl shadow-soft overflow-hidden">
       <table class="w-full text-sm">
         <thead class="bg-gray-50 border-b border-gray-100">
           <tr>
@@ -151,7 +184,8 @@ onMounted(loadVideos)
               <button
                 @click="handleDelete(video.id)"
                 :disabled="deletingId === video.id"
-                class="text-red-400 hover:text-red-600 transition-colors disabled:opacity-50"
+                class="p-2 rounded-full text-red-400 hover:text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                aria-label="Remove video"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
@@ -162,5 +196,6 @@ onMounted(loadVideos)
         </tbody>
       </table>
     </div>
+    </template>
   </div>
 </template>

@@ -5,6 +5,8 @@ import { useAuth } from '@/composables/useAuth'
 import { getDailySales, updatePartnerRevenue, getMissingPartnerReports } from '@/services/salesService'
 import { getSessionsByDate } from '@/services/sessionService'
 import { toast } from 'vue-sonner'
+import { formatPrice } from '@/utils/format'
+import { todayEAT } from '@/utils/date'
 
 defineOptions({ name: 'DailySalesForm' })
 
@@ -12,7 +14,7 @@ const route = useRoute()
 const { user, isAdmin } = useAuth()
 
 // Use query param date if provided, otherwise default to today
-const selectedDate = ref(route.query.date || new Date().toISOString().split('T')[0])
+const selectedDate = ref(route.query.date || todayEAT())
 
 const dailySales = ref(null)
 const sessions = ref([])
@@ -35,10 +37,6 @@ const discrepancy = computed(() => {
   if (!partnerRevenue.value && partnerRevenue.value !== 0) return null
   return sessionTotal.value - Number(partnerRevenue.value)
 })
-
-function formatPrice(amount) {
-  return Number(amount).toLocaleString('en-KE')
-}
 
 async function loadData() {
   loading.value = true
@@ -98,7 +96,7 @@ function formatDateShort(dateStr) {
 async function loadMissingDates() {
   loadingMissing.value = true
   try {
-    missingDates.value = await getMissingPartnerReports('2026-05-01')
+    missingDates.value = await getMissingPartnerReports()
   } catch (e) {
     // silent fail
   } finally {
@@ -189,6 +187,7 @@ onMounted(() => {
               id="partnerRevenue"
               v-model.number="partnerRevenue"
               type="number"
+              inputmode="decimal"
               min="0"
               step="0.01"
               placeholder="Enter partner's total"

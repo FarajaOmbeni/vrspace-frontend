@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
+import ConfirmDialog from '@/components/admin/ConfirmDialog.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -34,6 +35,7 @@ const adminMenuItems = computed(() => [
   { label: 'Partner Staff', to: '/admin/partner-staff' },
   { label: 'Partner Staff Report', to: '/admin/partner-staff/report' },
   { label: 'TikTok Videos', to: '/admin/tiktok' },
+  { label: 'Activity Log', to: '/admin/activity' },
   { label: 'Settings', to: '/admin/settings' },
 ])
 
@@ -142,8 +144,9 @@ async function handleSignOut() {
         <span class="text-xs text-purple-300 capitalize">{{ profile?.role }} - {{ profile?.full_name }}</span>
         <button
           @click="handleSignOut"
-          class="text-gray-400 hover:text-white transition-colors"
+          class="text-gray-400 hover:text-white transition-colors p-2 -m-2"
           title="Sign Out"
+          aria-label="Sign out"
         >
           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
         </button>
@@ -182,21 +185,21 @@ async function handleSignOut() {
     >
       <div
         v-if="showMoreMenu"
-        class="md:hidden fixed bottom-16 inset-x-0 z-50 bg-white rounded-t-2xl shadow-strong px-4 pt-4 pb-6"
+        class="md:hidden fixed bottom-16 inset-x-0 z-50 bg-white rounded-t-2xl shadow-strong px-4 pt-4 pb-6 max-h-[calc(100dvh-8rem)] overflow-y-auto overscroll-contain"
       >
         <div class="w-10 h-1 bg-gray-300 rounded-full mx-auto mb-4" />
         <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 px-1">Admin</p>
-        <div class="space-y-1">
+        <div class="grid grid-cols-2 gap-2">
           <router-link
             v-for="item in adminMenuItems"
             :key="item.to"
             :to="item.to"
             @click="showMoreMenu = false"
             :class="[
-              'flex items-center px-4 py-3 rounded-xl text-sm font-medium transition-colors',
+              'flex items-center min-h-[48px] px-3 py-2 rounded-xl text-sm font-medium leading-tight transition-colors',
               isActive(item.to, true)
                 ? 'bg-purple-50 text-purple'
-                : 'text-gray-700 hover:bg-gray-100',
+                : 'bg-gray-50 text-gray-700 hover:bg-gray-100',
             ]"
           >
             {{ item.label }}
@@ -239,5 +242,7 @@ async function handleSignOut() {
         </button>
       </div>
     </nav>
+
+    <ConfirmDialog />
   </div>
 </template>

@@ -2,6 +2,7 @@
 import { ref, onMounted } from 'vue'
 import { listExpenseTemplates, createExpenseTemplate, updateExpenseTemplate, toggleExpenseTemplateActive } from '@/services/financeService'
 import { toast } from 'vue-sonner'
+import { formatPrice } from '@/utils/format'
 
 defineOptions({ name: 'ExpenseTemplates' })
 
@@ -12,10 +13,6 @@ const showForm = ref(false)
 const editingId = ref(null)
 const form = ref({ name: '', default_amount: 0 })
 const saving = ref(false)
-
-function formatPrice(amount) {
-  return Number(amount).toLocaleString('en-KE')
-}
 
 async function loadTemplates() {
   loading.value = true
@@ -107,6 +104,7 @@ onMounted(loadTemplates)
         <input
           v-model.number="form.default_amount"
           type="number"
+          inputmode="decimal"
           min="0"
           step="100"
           class="w-full rounded-lg border-gray-300 text-sm py-2 px-3 focus:border-purple-500 focus:ring-purple-500"
@@ -161,7 +159,7 @@ onMounted(loadTemplates)
           <button @click="openEdit(t)" class="text-sm text-purple font-medium hover:underline">Edit</button>
           <button
             @click="handleToggle(t)"
-            :class="['relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors', t.is_active ? 'bg-green-500' : 'bg-gray-300']"
+            :class="['relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors tap-target', t.is_active ? 'bg-green-500' : 'bg-gray-300']"
           >
             <span :class="['pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform', t.is_active ? 'translate-x-4' : 'translate-x-0']" />
           </button>

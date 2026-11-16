@@ -10,5 +10,9 @@ module.exports = {
   ],
   parserOptions: {
     ecmaVersion: 'latest'
+  },
+  rules: {
+    // Route pages are single words by design (Login, Dashboard, Layout).
+    'vue/multi-word-component-names': 'off'
   }
 }

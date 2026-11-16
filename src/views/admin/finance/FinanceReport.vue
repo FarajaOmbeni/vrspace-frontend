@@ -2,29 +2,33 @@
 import { ref, computed, onMounted } from 'vue'
 import { getFinanceReport } from '@/services/financeService'
 import { toast } from 'vue-sonner'
+import { downloadCsv } from '@/utils/csv'
+import ExportCsvButton from '@/components/admin/ExportCsvButton.vue'
+import { formatPrice, formatInstantDate } from '@/utils/format'
+import { monthStartOf, toDateStr } from '@/utils/date'
 
 defineOptions({ name: 'FinanceReport' })
 
-const now = new Date()
-const startMonth = ref(`${now.getFullYear()}-01-01`)
-const endMonth = ref(`${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`)
+const thisMonth = monthStartOf(new Date())
+const startMonth = ref(`${thisMonth.slice(0, 4)}-01-01`)
+const endMonth = ref(thisMonth)
 
 const report = ref(null)
 const loading = ref(false)
 const filter = ref('all') // 'all', 'income', 'expenses', 'write_offs'
-
-function formatPrice(amount) {
-  return Number(amount).toLocaleString('en-KE')
-}
 
 function formatMonthLabel(month) {
   const [y, m] = month.split('-').map(Number)
   return new Date(y, m - 1, 1).toLocaleDateString('en-KE', { month: 'short', year: 'numeric' })
 }
 
-function formatDate(dateStr) {
-  const d = new Date(dateStr)
-  return d.toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })
+// Items are either a 'YYYY-MM-DD' day (VR revenue) or a created_at timestamp.
+function formatDate(value) {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [y, m, d] = value.split('-').map(Number)
+    return new Date(y, m - 1, d).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' })
+  }
+  return formatInstantDate(value)
 }
 
 function monthInputValue(month) {
@@ -115,7 +119,30 @@ const filteredItems = computed(() => {
   return [...vrItems, ...addItems, ...expItems].sort((a, b) => a.date.localeCompare(b.date))
 })
 
-const filteredTotal = computed(() => filteredItems.value.reduce((a, i) => a + i.amount, 0))
+const isIncomeType = (type) => type === 'vr_revenue' || type === 'additional_income'
+
+// On "All", income and expenses can't just be added together: show profit/loss
+// (income − expenses, write-offs not deducted — the same rule as Monthly Overview).
+const filteredTotal = computed(() => {
+  if (filter.value !== 'all') return filteredItems.value.reduce((a, i) => a + i.amount, 0)
+  return filteredItems.value.reduce((a, i) => {
+    if (isIncomeType(i.type)) return a + i.amount
+    if (i.type === 'write_off') return a
+    return a - i.amount
+  }, 0)
+})
+const totalLabel = computed(() => (filter.value === 'all' ? 'Profit / loss (write-offs not deducted)' : 'Total'))
+
+function exportCsv() {
+  const isExpense = (t) => !isIncomeType(t)
+  downloadCsv(`finance-${startMonth.value.slice(0, 7)}-to-${endMonth.value.slice(0, 7)}-${filter.value}.csv`, filteredItems.value, [
+    { label: 'Date', value: (i) => (i.date.length > 10 ? toDateStr(i.date) : i.date) }, // timestamps → EAT date
+    { label: 'Type', value: (i) => typeLabel(i.type) },
+    { label: 'Description', value: (i) => i.description },
+    { label: 'Income (KES)', value: (i) => (isExpense(i.type) ? '' : i.amount) },
+    { label: 'Expense (KES)', value: (i) => (isExpense(i.type) ? i.amount : '') },
+  ])
+}
 
 function typeLabel(type) {
   const labels = {
@@ -161,7 +188,7 @@ async function downloadReceipt(url, description) {
     const blob = await response.blob()
     const a = document.createElement('a')
     a.href = URL.createObjectURL(blob)
-    a.download = description.replace(/[^a-zA-Z0-9]/g, '_') + '.' + (url.split('.').pop() || 'jpg')
+    a.download = description.replace(/[^a-zA-Z0-9]/g, '_') + '.' + (url.split('?')[0].split('.').pop() || 'jpg')
     a.click()
     URL.revokeObjectURL(a.href)
   } catch {
@@ -174,7 +201,10 @@ onMounted(loadReport)
 
 <template>
   <div>
-    <h1 class="text-2xl font-header font-bold text-gray-900 mb-1">Finance Report</h1>
+    <div class="flex items-center justify-between gap-3 mb-1">
+      <h1 class="text-2xl font-header font-bold text-gray-900">Finance Report</h1>
+      <ExportCsvButton :disabled="loading || !filteredItems.length" @click="exportCsv" />
+    </div>
     <p class="text-sm text-gray-500 mb-6">Overview across months</p>
 
     <!-- Date range -->
@@ -398,7 +428,7 @@ onMounted(loadReport)
 
             <!-- Filter total -->
             <div class="bg-gray-50 rounded-xl p-3 flex items-center justify-between">
-              <p class="text-sm font-medium text-gray-500">Total</p>
+              <p class="text-sm font-medium text-gray-500">{{ totalLabel }}</p>
               <p class="text-sm font-bold text-gray-900">{{ formatPrice(filteredTotal) }} KES</p>
             </div>
           </div>
@@ -448,7 +478,7 @@ onMounted(loadReport)
               </tbody>
               <tfoot class="bg-gray-50 border-t border-gray-200">
                 <tr>
-                  <td colspan="4" class="px-6 py-3 text-sm font-bold text-gray-700">Total</td>
+                  <td colspan="4" class="px-6 py-3 text-sm font-bold text-gray-700">{{ totalLabel }}</td>
                   <td class="px-6 py-3 text-sm text-right font-bold text-gray-900">{{ formatPrice(filteredTotal) }} KES</td>
                   <td></td>
                 </tr>

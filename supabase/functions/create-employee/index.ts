@@ -86,12 +86,23 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Update salary if provided
-    if (salary != null && newUser.user) {
-      await adminClient
-        .from("profiles")
-        .update({ salary })
-        .eq("id", newUser.user.id);
+    // The signup trigger always creates the profile as 'employee' (so nobody
+    // can self-register as admin). Set the real role and salary here.
+    const profileUpdate: Record<string, unknown> = { role: role || "employee" };
+    if (salary != null) profileUpdate.salary = salary;
+
+    const { error: profileError } = await adminClient
+      .from("profiles")
+      .update(profileUpdate)
+      .eq("id", newUser.user.id);
+
+    if (profileError) {
+      // Don't leave a half-created account behind.
+      await adminClient.auth.admin.deleteUser(newUser.user.id);
+      return new Response(
+        JSON.stringify({ error: `Failed to set up profile: ${profileError.message}` }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     return new Response(

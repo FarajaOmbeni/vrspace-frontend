@@ -11,3 +11,15 @@
     display: none;
   }
 }
+@layer components {
+  /* Makes a small control (e.g. an on/off switch) easy to tap: the touch area
+     extends 12px beyond it on every side without changing how it looks. */
+  .tap-target {
+    position: relative;
+  }
+  .tap-target::before {
+    content: '';
+    position: absolute;
+    inset: -12px;
+  }
+}

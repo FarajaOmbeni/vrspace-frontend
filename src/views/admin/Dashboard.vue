@@ -1,11 +1,13 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { listAttendance, getEmployeeHours } from '@/services/attendanceService'
+import { listAttendance, getEmployeeHours, listMissedClockOuts } from '@/services/attendanceService'
 import { getTodayTotals } from '@/services/sessionService'
 import { getDiscrepancies, listDailySales } from '@/services/salesService'
 import { listMonthlyExpenses, getMonthlyVRRevenue, listAdditionalIncome } from '@/services/financeService'
-import { toast } from 'vue-sonner'
+import { formatPrice, formatHours, formatTime } from '@/utils/format'
+import { todayEAT, addDays, monthStartOf } from '@/utils/date'
+import { financeTotals, partnerDifference } from '@/utils/finance'
 
 defineOptions({ name: 'AdminDashboard' })
 
@@ -13,6 +15,7 @@ const router = useRouter()
 const loading = ref(true)
 
 const clockedIn = ref([])
+const missedClockOuts = ref([])
 const todaySessions = ref(0)
 const todayRevenue = ref(0)
 const recentDiscrepancies = ref([])
@@ -22,9 +25,8 @@ const monthTotalIncome = ref(0)
 const monthTotalExpenses = ref(0)
 const pendingPartnerReports = ref(0)
 
-function formatPrice(amount) {
-  return Number(amount).toLocaleString('en-KE')
-}
+/** Which sections failed to load, so they say so instead of showing 0 / "All clear". */
+const failed = ref({})
 
 function formatDate(dateStr) {
   return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-KE', {
@@ -34,83 +36,78 @@ function formatDate(dateStr) {
   })
 }
 
-function formatTime(dateStr) {
-  return new Date(dateStr).toLocaleTimeString('en-KE', {
-    hour: '2-digit',
-    minute: '2-digit',
+/** Runs a request; on failure marks `section` as failed and returns null. */
+function attempt(section, promise) {
+  return promise.catch((e) => {
+    console.error(`Dashboard: failed to load ${section}`, e)
+    failed.value[section] = true
+    return null
   })
-}
-
-function formatHours(hours) {
-  let h = Math.floor(hours)
-  let m = Math.round((hours - h) * 60)
-  if (m === 60) { h++; m = 0 }
-  return `${h}h ${m}m`
 }
 
 async function loadData() {
   loading.value = true
-  try {
-    const now = new Date()
-    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
-    const weekAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7)
-    const weekStart = `${weekAgo.getFullYear()}-${String(weekAgo.getMonth() + 1).padStart(2, '0')}-${String(weekAgo.getDate()).padStart(2, '0')}`
-    const monthStart = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+  failed.value = {}
 
-    const [attendance, totals, discrepancies, monthlyHours, expenses, vrRevenue, additionalIncome, dailySales] = await Promise.all([
-      listAttendance({ startDate: today, endDate: today }),
-      getTodayTotals(),
-      getDiscrepancies({ startDate: weekStart, endDate: today }).catch(() => []),
-      getEmployeeHours({ startDate: monthStart, endDate: today }).catch(() => []),
-      listMonthlyExpenses(monthStart).catch(() => []),
-      getMonthlyVRRevenue(monthStart).catch(() => 0),
-      listAdditionalIncome(monthStart).catch(() => []),
-      listDailySales({ startDate: monthStart, endDate: today }).catch(() => []),
-    ])
+  const now = new Date()
+  const today = todayEAT(now)
+  const weekAgo = addDays(today, -7)
+  const monthStart = monthStartOf(now)
 
-    // Currently clocked in
-    clockedIn.value = attendance.filter((a) => !a.clock_out)
+  const [attendance, missed, totals, discrepancies, monthlyHours, expenses, vrRevenue, additionalIncome, dailySales] = await Promise.all([
+    attempt('attendance', listAttendance({ startDate: today, endDate: today })),
+    attempt('missed', listMissedClockOuts()),
+    attempt('sessions', getTodayTotals()),
+    attempt('discrepancies', getDiscrepancies({ startDate: weekAgo, endDate: today })),
+    attempt('overtime', getEmployeeHours({ startDate: monthStart, endDate: today })),
+    attempt('finance', listMonthlyExpenses(monthStart)),
+    attempt('finance', getMonthlyVRRevenue(monthStart)),
+    attempt('finance', listAdditionalIncome(monthStart)),
+    attempt('partner', listDailySales({ startDate: monthStart, endDate: today })),
+  ])
 
-    // Today's sessions
-    todaySessions.value = totals.sessions
-    todayRevenue.value = totals.revenue
+  // Currently clocked in
+  clockedIn.value = (attendance || []).filter((a) => !a.clock_out)
+  missedClockOuts.value = missed || []
 
-    // Recent discrepancies
-    recentDiscrepancies.value = discrepancies.slice(0, 5)
+  // Today's sessions
+  todaySessions.value = totals?.sessions ?? 0
+  todayRevenue.value = totals?.revenue ?? 0
 
-    // Overtime alerts — employees with overtime this month
-    const overtimeMap = {}
-    for (const rec of monthlyHours) {
-      if (Number(rec.overtime_hours || 0) > 0) {
-        const id = rec.employee_id
-        if (!overtimeMap[id]) {
-          overtimeMap[id] = {
-            name: rec.profiles?.full_name || 'Unknown',
-            overtimeHours: 0,
-          }
+  // Recent discrepancies
+  recentDiscrepancies.value = (discrepancies || []).slice(0, 5)
+
+  // Overtime alerts — employees with overtime this month
+  const overtimeMap = {}
+  for (const rec of monthlyHours || []) {
+    if (Number(rec.overtime_hours || 0) > 0) {
+      const id = rec.employee_id
+      if (!overtimeMap[id]) {
+        overtimeMap[id] = {
+          name: rec.profiles?.full_name || 'Unknown',
+          overtimeHours: 0,
         }
-        overtimeMap[id].overtimeHours += Number(rec.overtime_hours)
       }
+      overtimeMap[id].overtimeHours += Number(rec.overtime_hours)
     }
-    overtimeAlerts.value = Object.values(overtimeMap).sort((a, b) => b.overtimeHours - a.overtimeHours)
-
-    // Finance: profit/loss
-    const totalExp = expenses.reduce((a, e) => a + Number(e.amount || 0), 0)
-    const totalAddIncome = additionalIncome.reduce((a, i) => a + Number(i.amount || 0), 0)
-    const totalInc = vrRevenue + totalAddIncome
-    monthTotalIncome.value = totalInc
-    monthTotalExpenses.value = totalExp
-    monthProfitLoss.value = totalInc - totalExp
-
-    // Pending partner reports: days with sessions but no partner_reported_revenue
-    const daysWithSales = new Set(dailySales.map((s) => s.date))
-    const daysWithPartner = new Set(dailySales.filter((s) => s.partner_reported_revenue != null).map((s) => s.date))
-    pendingPartnerReports.value = daysWithSales.size - daysWithPartner.size
-  } catch (e) {
-    toast.error('Failed to load dashboard')
-  } finally {
-    loading.value = false
   }
+  overtimeAlerts.value = Object.values(overtimeMap).sort((a, b) => b.overtimeHours - a.overtimeHours)
+
+  // Finance: same rules as Monthly Overview (write-offs not deducted)
+  if (!failed.value.finance) {
+    const t = financeTotals({ vrRevenue, expenses, additionalIncome })
+    monthTotalIncome.value = t.totalIncome
+    monthTotalExpenses.value = t.totalExpenses
+    monthProfitLoss.value = t.profitLoss
+  }
+
+  // Pending partner reports: days with sessions but no partner_reported_revenue
+  const sales = dailySales || []
+  const daysWithSales = new Set(sales.map((s) => s.date))
+  const daysWithPartner = new Set(sales.filter((s) => s.partner_reported_revenue != null).map((s) => s.date))
+  pendingPartnerReports.value = daysWithSales.size - daysWithPartner.size
+
+  loading.value = false
 }
 
 onMounted(loadData)
@@ -139,7 +136,7 @@ onMounted(loadData)
             </div>
             <span class="text-xs text-gray-400">Clocked In</span>
           </div>
-          <p class="text-2xl font-bold text-gray-900">{{ clockedIn.length }}</p>
+          <p class="text-2xl font-bold text-gray-900">{{ failed.attendance ? '—' : clockedIn.length }}</p>
           <p class="text-xs text-gray-400 mt-0.5">employees on shift</p>
         </button>
 
@@ -154,7 +151,7 @@ onMounted(loadData)
             </div>
             <span class="text-xs text-gray-400">Sessions</span>
           </div>
-          <p class="text-2xl font-bold text-gray-900">{{ todaySessions }}</p>
+          <p class="text-2xl font-bold text-gray-900">{{ failed.sessions ? '—' : todaySessions }}</p>
           <p class="text-xs text-gray-400 mt-0.5">today</p>
         </button>
 
@@ -169,7 +166,7 @@ onMounted(loadData)
             </div>
             <span class="text-xs text-gray-400">Revenue</span>
           </div>
-          <p class="text-2xl font-bold text-gray-900">{{ formatPrice(todayRevenue) }}</p>
+          <p class="text-2xl font-bold text-gray-900">{{ failed.sessions ? '—' : formatPrice(todayRevenue) }}</p>
           <p class="text-xs text-gray-400 mt-0.5">KES today</p>
         </button>
 
@@ -185,7 +182,8 @@ onMounted(loadData)
             </div>
             <span class="text-xs text-gray-400">Discrepancies</span>
           </div>
-          <p class="text-2xl font-bold" :class="recentDiscrepancies.length > 0 ? 'text-red-500' : 'text-green-600'">
+          <p v-if="failed.discrepancies" class="text-2xl font-bold text-gray-400">—</p>
+          <p v-else class="text-2xl font-bold" :class="recentDiscrepancies.length > 0 ? 'text-red-500' : 'text-green-600'">
             {{ recentDiscrepancies.length }}
           </p>
           <p class="text-xs text-gray-400 mt-0.5">last 7 days</p>
@@ -206,10 +204,16 @@ onMounted(loadData)
             </div>
             <span class="text-xs text-gray-400">This Month</span>
           </div>
-          <p :class="['text-2xl font-bold', monthProfitLoss >= 0 ? 'text-green-600' : 'text-red-500']">
-            {{ monthProfitLoss >= 0 ? '' : '-' }}{{ formatPrice(Math.abs(monthProfitLoss)) }}
-          </p>
-          <p class="text-xs text-gray-400 mt-0.5">{{ monthProfitLoss >= 0 ? 'profit' : 'loss' }}</p>
+          <template v-if="failed.finance">
+            <p class="text-2xl font-bold text-gray-400">—</p>
+            <p class="text-xs text-red-500 mt-0.5">couldn't load</p>
+          </template>
+          <template v-else>
+            <p :class="['text-2xl font-bold', monthProfitLoss >= 0 ? 'text-green-600' : 'text-red-500']">
+              {{ monthProfitLoss >= 0 ? '' : '-' }}{{ formatPrice(Math.abs(monthProfitLoss)) }}
+            </p>
+            <p class="text-xs text-gray-400 mt-0.5">{{ monthProfitLoss >= 0 ? 'profit' : 'loss' }}</p>
+          </template>
         </button>
 
         <!-- Pending Partner Reports -->
@@ -224,12 +228,33 @@ onMounted(loadData)
             </div>
             <span class="text-xs text-gray-400">Partner Reports</span>
           </div>
-          <p :class="['text-2xl font-bold', pendingPartnerReports > 0 ? 'text-yellow-600' : 'text-green-600']">
-            {{ pendingPartnerReports }}
-          </p>
-          <p class="text-xs text-gray-400 mt-0.5">{{ pendingPartnerReports > 0 ? 'pending' : 'all submitted' }}</p>
+          <template v-if="failed.partner">
+            <p class="text-2xl font-bold text-gray-400">—</p>
+            <p class="text-xs text-red-500 mt-0.5">couldn't load</p>
+          </template>
+          <template v-else>
+            <p :class="['text-2xl font-bold', pendingPartnerReports > 0 ? 'text-yellow-600' : 'text-green-600']">
+              {{ pendingPartnerReports }}
+            </p>
+            <p class="text-xs text-gray-400 mt-0.5">{{ pendingPartnerReports > 0 ? 'pending' : 'all submitted' }}</p>
+          </template>
         </button>
       </div>
+
+      <!-- Missed clock-outs: shifts from earlier days still open -->
+      <button
+        v-if="missedClockOuts.length > 0"
+        @click="router.push('/admin/attendance')"
+        class="w-full bg-yellow-50 border border-yellow-200 rounded-xl p-4 mb-6 text-left hover:bg-yellow-100 transition-colors"
+      >
+        <p class="text-sm font-semibold text-yellow-800">
+          {{ missedClockOuts.length }} shift{{ missedClockOuts.length > 1 ? 's' : '' }} never clocked out
+        </p>
+        <p class="text-xs text-yellow-700 mt-1">
+          {{ missedClockOuts.slice(0, 3).map((m) => `${m.profiles?.full_name || 'Unknown'} (${formatDate(m.date)})`).join(', ') }}{{ missedClockOuts.length > 3 ? '…' : '' }}
+          — tap to set their clock-out times.
+        </p>
+      </button>
 
       <!-- Bottom sections -->
       <div class="md:grid md:grid-cols-2 md:gap-6">
@@ -241,7 +266,11 @@ onMounted(loadData)
             <button @click="router.push('/admin/attendance')" class="text-xs text-purple font-medium hover:underline">View all</button>
           </div>
 
-          <div v-if="clockedIn.length === 0" class="text-center py-4">
+          <div v-if="failed.attendance" class="text-center py-4">
+            <p class="text-sm text-red-500">Couldn't load attendance</p>
+          </div>
+
+          <div v-else-if="clockedIn.length === 0" class="text-center py-4">
             <p class="text-sm text-gray-400">No employees clocked in</p>
           </div>
 
@@ -269,7 +298,11 @@ onMounted(loadData)
               <button @click="router.push('/admin/sales/discrepancies')" class="text-xs text-purple font-medium hover:underline">View all</button>
             </div>
 
-            <div v-if="recentDiscrepancies.length === 0" class="text-center py-4">
+            <div v-if="failed.discrepancies" class="text-center py-4">
+              <p class="text-sm text-red-500">Couldn't load discrepancies</p>
+            </div>
+
+            <div v-else-if="recentDiscrepancies.length === 0" class="text-center py-4">
               <p class="text-sm text-green-500">All clear — no discrepancies</p>
             </div>
 
@@ -280,8 +313,8 @@ onMounted(loadData)
                 class="flex items-center justify-between py-2 border-b border-gray-50 last:border-0"
               >
                 <span class="text-sm text-gray-900">{{ formatDate(d.date) }}</span>
-                <span class="text-sm font-bold text-red-600">
-                  {{ d.discrepancy > 0 ? '+' : '' }}{{ formatPrice(d.discrepancy) }} KES
+                <span class="text-sm font-bold" :class="partnerDifference(d) > 0 ? 'text-green-600' : 'text-red-600'">
+                  {{ partnerDifference(d) > 0 ? '+' : '' }}{{ formatPrice(partnerDifference(d)) }} KES
                 </span>
               </div>
             </div>
@@ -294,7 +327,11 @@ onMounted(loadData)
               <button @click="router.push('/admin/attendance/hours')" class="text-xs text-purple font-medium hover:underline">View all</button>
             </div>
 
-            <div v-if="overtimeAlerts.length === 0" class="text-center py-4">
+            <div v-if="failed.overtime" class="text-center py-4">
+              <p class="text-sm text-red-500">Couldn't load overtime</p>
+            </div>
+
+            <div v-else-if="overtimeAlerts.length === 0" class="text-center py-4">
               <p class="text-sm text-gray-400">No overtime recorded</p>
             </div>
 

@@ -26,14 +26,21 @@ export async function getMachine(id) {
   return data
 }
 
-export async function createMachine({ name, price_per_session, image_url }) {
-  const { data, error } = await supabase
-    .from('machines')
-    .insert({
-      name,
-      price_per_session: price_per_session || 500,
-      image_url: image_url || null,
-    })
+/**
+ * Pass a client-generated `id` to make retries safe: saving the same id twice
+ * updates the machine instead of failing or creating a duplicate.
+ */
+export async function createMachine({ id, name, price_per_session, image_url }) {
+  const row = {
+    name,
+    price_per_session: price_per_session || 500,
+    image_url: image_url || null,
+  }
+  const query = id
+    ? supabase.from('machines').upsert({ id, ...row })
+    : supabase.from('machines').insert(row)
+
+  const { data, error } = await query
     .select()
     .single()
 

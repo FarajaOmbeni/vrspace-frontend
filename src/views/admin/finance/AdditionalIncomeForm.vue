@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { createAdditionalIncome, updateAdditionalIncome } from '@/services/financeService'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'vue-sonner'
+import { monthStartOf } from '@/utils/date'
 
 defineOptions({ name: 'AdditionalIncomeForm' })
 
@@ -15,7 +16,7 @@ const form = ref({ description: '', amount: 0 })
 const loading = ref(false)
 const loadingData = ref(false)
 
-const month = computed(() => route.query.month || new Date().toISOString().slice(0, 7) + '-01')
+const month = computed(() => route.query.month || monthStartOf(new Date()))
 
 async function loadIncome() {
   loadingData.value = true
@@ -94,6 +95,7 @@ onMounted(() => {
           id="amount"
           v-model.number="form.amount"
           type="number"
+          inputmode="decimal"
           required
           min="0"
           step="1"

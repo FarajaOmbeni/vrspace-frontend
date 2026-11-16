@@ -1,10 +1,12 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAuth } from '@/composables/useAuth'
 import { listMachines } from '@/services/machineService'
-import { logSession, getTodaySessions, deleteSession, getTodayTotals } from '@/services/sessionService'
+import { getTodaySessions, deleteSession, getTodayTotals } from '@/services/sessionService'
+import { pendingSessions, logSessionOrQueue, flushPending, discardPending } from '@/services/sessionQueue'
 import { listPartnerStaff } from '@/services/partnerStaffService'
 import { toast } from 'vue-sonner'
+import { formatPrice, formatTime } from '@/utils/format'
 
 defineOptions({ name: 'SessionLogger' })
 
@@ -23,16 +25,25 @@ const modalCount = ref(1)
 const modalPartnerStaffId = ref('')
 const modalActing = ref(false)
 
-function formatPrice(amount) {
-  return Number(amount).toLocaleString('en-KE')
-}
+// Sessions removed on screen but not yet deleted (waiting for "Undo" to expire).
+const UNDO_MS = 5000
+const hiddenIds = ref(new Set())
 
-function formatTime(dateStr) {
-  return new Date(dateStr).toLocaleTimeString('en-KE', {
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
+const visibleSessions = computed(() => sessions.value.filter((s) => !hiddenIds.value.has(s.id)))
+
+// Today's totals minus anything waiting for Undo, plus anything waiting to sync.
+const displayTotals = computed(() => {
+  const hidden = sessions.value.filter((s) => hiddenIds.value.has(s.id))
+  const pending = pendingSessions.value
+  return {
+    sessions: totals.value.sessions
+      - hidden.reduce((a, s) => a + s.session_count, 0)
+      + pending.reduce((a, s) => a + s.sessionCount, 0),
+    revenue: totals.value.revenue
+      - hidden.reduce((a, s) => a + Number(s.total_amount), 0)
+      + pending.reduce((a, s) => a + s.sessionCount * Number(s.pricePerSession), 0),
+  }
+})
 
 async function loadData() {
   loading.value = true
@@ -91,15 +102,21 @@ async function submitModal() {
 
   modalActing.value = true
   try {
-    await logSession({
+    const label = `+${modalCount.value} ${modalMachine.value.name} session${modalCount.value > 1 ? 's' : ''}`
+    const { queued } = await logSessionOrQueue({
       employeeId: user.value.id,
       machineId: modalMachine.value.id,
+      machineName: modalMachine.value.name,
       sessionCount: modalCount.value,
       pricePerSession: modalMachine.value.price_per_session,
       partnerStaffId: modalPartnerStaffId.value || null,
     })
-    await refreshTotals()
-    toast.success(`+${modalCount.value} ${modalMachine.value.name} session${modalCount.value > 1 ? 's' : ''}`, { duration: 2000 })
+    if (queued) {
+      toast.warning(`${label} saved on this phone — will sync when the connection is back`, { duration: 4000 })
+    } else {
+      await refreshTotals()
+      toast.success(label, { duration: 2000 })
+    }
     showModal.value = false
   } catch (e) {
     toast.error(e.message || 'Failed to log session')
@@ -108,17 +125,76 @@ async function submitModal() {
   }
 }
 
-async function handleDelete(session) {
-  try {
-    await deleteSession(session.id)
+function setHidden(id, hidden) {
+  const next = new Set(hiddenIds.value)
+  hidden ? next.add(id) : next.delete(id)
+  hiddenIds.value = next
+}
+
+// Remove from the screen straight away; only delete for real if "Undo"
+// isn't tapped within a few seconds.
+function handleDelete(session) {
+  setHidden(session.id, true)
+  const timer = setTimeout(async () => {
+    try {
+      await deleteSession(session.id)
+      await refreshTotals()
+    } catch (e) {
+      toast.error(e.message || 'Failed to delete session')
+    } finally {
+      setHidden(session.id, false)
+    }
+  }, UNDO_MS)
+
+  toast(`${session.machines?.name || 'Session'} removed`, {
+    duration: UNDO_MS,
+    action: {
+      label: 'Undo',
+      onClick: () => {
+        clearTimeout(timer)
+        setHidden(session.id, false)
+      },
+    },
+  })
+}
+
+function handleDiscardPending(entry) {
+  discardPending(entry.id)
+  toast(`${entry.machineName} removed`)
+}
+
+async function syncPending() {
+  if (!pendingSessions.value.length) return
+  const { sent, stale, rejected } = await flushPending()
+  if (sent) {
+    toast.success(`${sent} saved session${sent > 1 ? 's' : ''} synced`)
     await refreshTotals()
-    toast.success('Session removed')
-  } catch (e) {
-    toast.error('Failed to delete session')
+  }
+  if (stale.length) {
+    toast.error(
+      `${stale.length} session${stale.length > 1 ? 's' : ''} from a previous day couldn't be synced: ` +
+        stale.map((e) => `${e.sessionCount} × ${e.machineName} (${e.queuedOn})`).join(', ') +
+        '. Tell an admin so they can add them.',
+      { duration: Infinity }
+    )
+  }
+  for (const { entry, message } of rejected) {
+    toast.error(`${entry.sessionCount} × ${entry.machineName} wasn't saved: ${message}`, { duration: Infinity })
   }
 }
 
-onMounted(loadData)
+// Retry when the connection returns, and every 30 seconds while anything is waiting.
+let retryTimer = null
+onMounted(() => {
+  loadData()
+  syncPending()
+  window.addEventListener('online', syncPending)
+  retryTimer = setInterval(syncPending, 30000)
+})
+onUnmounted(() => {
+  window.removeEventListener('online', syncPending)
+  clearInterval(retryTimer)
+})
 </script>
 
 <template>
@@ -144,11 +220,11 @@ onMounted(loadData)
       <div class="bg-purple rounded-xl p-4 mb-4 text-white flex items-center justify-between">
         <div>
           <p class="text-sm text-purple-200">Today's Total</p>
-          <p class="text-2xl font-bold">{{ totals.sessions }} sessions</p>
+          <p class="text-2xl font-bold">{{ displayTotals.sessions }} sessions</p>
         </div>
         <div class="text-right">
           <p class="text-sm text-purple-200">Revenue</p>
-          <p class="text-2xl font-bold">{{ formatPrice(totals.revenue) }} KES</p>
+          <p class="text-2xl font-bold">{{ formatPrice(displayTotals.revenue) }} KES</p>
         </div>
       </div>
 
@@ -189,14 +265,36 @@ onMounted(loadData)
         <div class="mt-6 md:mt-0">
           <h2 class="text-lg font-header font-bold text-gray-900 mb-3">Today's Sessions</h2>
 
-          <div v-if="sessions.length === 0" class="text-center py-8">
+          <!-- Saved on this phone, waiting for a connection -->
+          <div v-if="pendingSessions.length" class="bg-yellow-50 border border-yellow-200 rounded-xl p-3 mb-3">
+            <div class="flex items-center justify-between gap-3 mb-2">
+              <p class="text-sm font-medium text-yellow-800">
+                {{ pendingSessions.length }} waiting to sync — no connection
+              </p>
+              <button @click="syncPending" class="min-h-[40px] px-3 rounded-lg bg-yellow-100 text-yellow-800 text-sm font-semibold">
+                Retry now
+              </button>
+            </div>
+            <div v-for="p in pendingSessions" :key="p.id" class="flex items-center justify-between py-1">
+              <p class="text-sm text-yellow-900">{{ p.sessionCount }} × {{ p.machineName }}</p>
+              <button
+                @click="handleDiscardPending(p)"
+                class="w-10 h-10 -my-1 flex items-center justify-center rounded-full text-yellow-700 hover:bg-yellow-100"
+                :aria-label="`Remove ${p.machineName}`"
+              >
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div v-if="visibleSessions.length === 0 && !pendingSessions.length" class="text-center py-8">
             <p class="text-gray-400">No sessions logged today</p>
           </div>
 
           <!-- Mobile: card list -->
           <div class="md:hidden space-y-2">
             <div
-              v-for="s in sessions"
+              v-for="s in visibleSessions"
               :key="s.id"
               class="bg-white rounded-xl shadow-soft p-3 flex items-center justify-between"
             >
@@ -218,9 +316,10 @@ onMounted(loadData)
                 <span class="text-xs text-gray-400">{{ formatTime(s.created_at) }}</span>
                 <button
                   @click="handleDelete(s)"
-                  class="text-red-400 hover:text-red-600 p-1"
+                  class="w-11 h-11 -mr-1 flex items-center justify-center rounded-full text-red-400 hover:text-red-600 hover:bg-red-50"
+                  :aria-label="`Remove ${s.machines?.name || 'session'}`"
                 >
-                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                  <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                 </button>
               </div>
             </div>
@@ -241,7 +340,7 @@ onMounted(loadData)
                 </tr>
               </thead>
               <tbody class="divide-y divide-gray-100">
-                <tr v-for="s in sessions" :key="s.id" class="hover:bg-gray-50">
+                <tr v-for="s in visibleSessions" :key="s.id" class="hover:bg-gray-50">
                   <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ s.machines?.name }}</td>
                   <td class="px-4 py-3 text-sm text-gray-900">{{ s.session_count }}</td>
                   <td class="px-4 py-3 text-sm font-semibold text-purple">{{ formatPrice(s.total_amount) }} KES</td>
@@ -249,7 +348,7 @@ onMounted(loadData)
                   <td class="px-4 py-3 text-sm text-blue-500">{{ s.partner_staff?.full_name || '—' }}</td>
                   <td class="px-4 py-3 text-sm text-gray-400">{{ formatTime(s.created_at) }}</td>
                   <td class="px-4 py-3 text-right">
-                    <button @click="handleDelete(s)" class="text-red-400 hover:text-red-600">
+                    <button @click="handleDelete(s)" class="p-2 rounded-full text-red-400 hover:text-red-600 hover:bg-red-50" :aria-label="`Remove ${s.machines?.name || 'session'}`">
                       <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                     </button>
                   </td>
@@ -345,6 +444,7 @@ onMounted(loadData)
               <input
                 v-model.number="modalCount"
                 type="number"
+                inputmode="numeric"
                 min="1"
                 class="w-20 text-center text-3xl font-bold text-gray-900 border-0 border-b-2 border-gray-200 focus:border-purple focus:ring-0 p-0"
               />

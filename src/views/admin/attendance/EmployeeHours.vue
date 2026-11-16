@@ -3,7 +3,12 @@ import { ref, computed, onMounted } from 'vue'
 import { getEmployeeHours } from '@/services/attendanceService'
 import { listEmployees } from '@/services/employeeService'
 import { getSetting } from '@/services/settingsService'
+import { formatHours } from '@/utils/format'
+import { periodRange } from '@/utils/date'
+import { hourlyRateFrom, overtimePay } from '@/utils/payroll'
 import { toast } from 'vue-sonner'
+import { downloadCsv } from '@/utils/csv'
+import ExportCsvButton from '@/components/admin/ExportCsvButton.vue'
 
 defineOptions({ name: 'EmployeeHours' })
 
@@ -17,39 +22,24 @@ const filterPeriod = ref('week') // 'week', 'month', 'custom'
 const filterStartDate = ref('')
 const filterEndDate = ref('')
 
-// Compute date range from period
+const totals = computed(() =>
+  summary.value.reduce(
+    (a, e) => ({
+      totalHours: a.totalHours + e.totalHours,
+      overtimeHours: a.overtimeHours + e.overtimeHours,
+      totalPay: a.totalPay + e.totalPay,
+    }),
+    { totalHours: 0, overtimeHours: 0, totalPay: 0 }
+  )
+)
+
 function getDateRange() {
-  const now = new Date()
-  let start, end
-
-  if (filterPeriod.value === 'week') {
-    const day = now.getDay()
-    start = new Date(now)
-    start.setDate(now.getDate() - (day === 0 ? 6 : day - 1)) // Monday
-    end = now
-  } else if (filterPeriod.value === 'month') {
-    start = new Date(now.getFullYear(), now.getMonth(), 1)
-    end = now
-  } else if (filterPeriod.value === 'last-month') {
-    start = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-    end = new Date(now.getFullYear(), now.getMonth(), 0)
-  } else {
-    start = filterStartDate.value ? new Date(filterStartDate.value) : null
-    end = filterEndDate.value ? new Date(filterEndDate.value) : null
-  }
-
-  function toDateStr(d) {
-    const y = d.getFullYear()
-    const m = String(d.getMonth() + 1).padStart(2, '0')
-    const day = String(d.getDate()).padStart(2, '0')
-    return `${y}-${m}-${day}`
-  }
-
-  return {
-    startDate: start ? toDateStr(start) : undefined,
-    endDate: end ? toDateStr(end) : undefined,
-  }
+  return periodRange(filterPeriod.value, { start: filterStartDate.value, end: filterEndDate.value })
 }
+
+// Salary is paid monthly, so it only belongs in whole-month views.
+const loadedPeriod = ref(filterPeriod.value)
+const includesSalary = computed(() => ['month', 'last-month'].includes(loadedPeriod.value))
 
 // Group records by employee and sum hours
 const summary = computed(() => {
@@ -60,7 +50,7 @@ const summary = computed(() => {
     if (!map[id]) {
       map[id] = {
         name: rec.profiles?.full_name || 'Unknown',
-        salary: Number(rec.profiles?.salary || 0),
+        salary: includesSalary.value ? Number(rec.profiles?.salary || 0) : 0,
         days: 0,
         totalHours: 0,
         overtimeHours: 0,
@@ -74,17 +64,24 @@ const summary = computed(() => {
   return Object.values(map)
     .map((e) => ({
       ...e,
-      overtimePay: Math.round(e.overtimeHours * hourlyRate.value),
-      totalPay: e.salary + Math.round(e.overtimeHours * hourlyRate.value),
+      overtimePay: overtimePay(e.overtimeHours, hourlyRate.value),
+      totalPay: e.salary + overtimePay(e.overtimeHours, hourlyRate.value),
     }))
     .sort((a, b) => b.totalHours - a.totalHours)
 })
 
-function formatHours(hours) {
-  let h = Math.floor(hours)
-  let m = Math.round((hours - h) * 60)
-  if (m === 60) { h++; m = 0 }
-  return `${h}h ${m}m`
+function exportCsv() {
+  const { startDate, endDate } = getDateRange()
+  const columns = [
+    { label: 'Employee', value: (e) => e.name },
+    { label: 'Days', value: (e) => e.days },
+    { label: 'Hours', value: (e) => Number(e.totalHours.toFixed(2)) },
+    { label: 'Overtime hours', value: (e) => Number(e.overtimeHours.toFixed(2)) },
+    ...(includesSalary.value ? [{ label: 'Salary (KES)', value: (e) => e.salary }] : []),
+    { label: 'Overtime pay (KES)', value: (e) => e.overtimePay },
+    { label: 'Total pay (KES)', value: (e) => e.totalPay },
+  ]
+  downloadCsv(`employee-hours-${startDate || 'start'}-to-${endDate || 'today'}.csv`, summary.value, columns)
 }
 
 async function loadData() {
@@ -102,9 +99,8 @@ async function loadData() {
     ])
     employees.value = empData
     records.value = hoursData
-    if (workingHours?.hourly_rate) {
-      hourlyRate.value = workingHours.hourly_rate
-    }
+    hourlyRate.value = hourlyRateFrom(workingHours)
+    loadedPeriod.value = filterPeriod.value
   } catch (e) {
     toast.error('Failed to load hours')
   } finally {
@@ -121,7 +117,10 @@ onMounted(loadData)
 
 <template>
   <div>
-    <h1 class="text-2xl font-header font-bold text-gray-900 mb-6">Employee Hours</h1>
+    <div class="flex items-center justify-between gap-3 mb-6">
+      <h1 class="text-2xl font-header font-bold text-gray-900">Employee Hours</h1>
+      <ExportCsvButton :disabled="loading || !summary.length" @click="exportCsv" />
+    </div>
 
     <!-- Filters -->
     <div class="bg-white rounded-xl shadow-soft p-4 mb-4 space-y-3 md:space-y-0 md:flex md:items-end md:gap-4">
@@ -193,6 +192,25 @@ onMounted(loadData)
     </div>
 
     <template v-else>
+    <p v-if="!includesSalary" class="text-xs text-gray-400 mb-3">
+      Salary is monthly, so it's only included in the Month and Last Month views. Pay below is overtime only.
+    </p>
+    <!-- Mobile: totals -->
+    <div class="md:hidden bg-purple text-white rounded-xl p-4 mb-3 grid grid-cols-3 gap-2 text-center">
+      <div>
+        <p class="text-xs text-purple-200">Hours</p>
+        <p class="text-base font-bold">{{ formatHours(totals.totalHours) }}</p>
+      </div>
+      <div>
+        <p class="text-xs text-purple-200">Overtime</p>
+        <p class="text-base font-bold">{{ formatHours(totals.overtimeHours) }}</p>
+      </div>
+      <div>
+        <p class="text-xs text-purple-200">Total pay</p>
+        <p class="text-base font-bold">{{ totals.totalPay.toLocaleString('en-KE') }}</p>
+      </div>
+    </div>
+
     <!-- Mobile: Cards -->
     <div class="md:hidden space-y-3">
       <div
@@ -223,7 +241,7 @@ onMounted(loadData)
           </div>
           <div>
             <p class="text-xs text-gray-400">Salary</p>
-            <p class="text-sm font-bold text-gray-900">{{ emp.salary.toLocaleString('en-KE') }}</p>
+            <p class="text-sm font-bold text-gray-900">{{ includesSalary ? emp.salary.toLocaleString('en-KE') : '—' }}</p>
           </div>
           <div>
             <p class="text-xs text-gray-400">OT Pay</p>
@@ -259,7 +277,7 @@ onMounted(loadData)
                 {{ formatHours(emp.overtimeHours) }}
               </span>
             </td>
-            <td class="px-6 py-4 text-right text-sm text-gray-900">{{ emp.salary.toLocaleString('en-KE') }}</td>
+            <td class="px-6 py-4 text-right text-sm text-gray-900">{{ includesSalary ? emp.salary.toLocaleString('en-KE') : '—' }}</td>
             <td class="px-6 py-4 text-right text-sm font-medium text-orange-600">{{ emp.overtimePay.toLocaleString('en-KE') }}</td>
             <td class="px-6 py-4 text-right text-sm font-bold text-green-600">{{ emp.totalPay.toLocaleString('en-KE') }}</td>
           </tr>
@@ -271,7 +289,7 @@ onMounted(loadData)
             <td class="px-6 py-3 text-sm font-bold text-gray-900">{{ summary.reduce((a, e) => a + e.days, 0) }}</td>
             <td class="px-6 py-3 text-sm font-bold text-purple">{{ formatHours(summary.reduce((a, e) => a + e.totalHours, 0)) }}</td>
             <td class="px-6 py-3 text-sm font-bold text-orange-600">{{ formatHours(summary.reduce((a, e) => a + e.overtimeHours, 0)) }}</td>
-            <td class="px-6 py-3 text-right text-sm font-bold text-gray-900">{{ summary.reduce((a, e) => a + e.salary, 0).toLocaleString('en-KE') }}</td>
+            <td class="px-6 py-3 text-right text-sm font-bold text-gray-900">{{ includesSalary ? summary.reduce((a, e) => a + e.salary, 0).toLocaleString('en-KE') : '—' }}</td>
             <td class="px-6 py-3 text-right text-sm font-bold text-orange-600">{{ summary.reduce((a, e) => a + e.overtimePay, 0).toLocaleString('en-KE') }}</td>
             <td class="px-6 py-3 text-right text-sm font-bold text-green-600">{{ summary.reduce((a, e) => a + e.totalPay, 0).toLocaleString('en-KE') }}</td>
           </tr>

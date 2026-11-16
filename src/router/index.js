@@ -1,9 +1,10 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../views/Home.vue'
-import About from '@/views/About.vue'
-import Experiences from '@/views/Experiences.vue'
-import Contact from '@/views/Contact.vue'
-import Marketplace from '@/views/Marketplace.vue'
+
+const SITE_URL = 'https://vrspace.co.ke'
+const DEFAULT_TITLE = 'VR Space - Immersive Virtual Reality Experience in Nairobi'
+const DEFAULT_DESCRIPTION =
+  'Discover unparalleled virtual reality gaming experiences at VR SPACE. HTC Vive, EggVR, GT Racing, PS5 games and more in Nairobi, Kenya.'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -11,28 +12,45 @@ const router = createRouter({
     // ── Public routes ──
     {
       path: '/',
-      name: 'Homey',
-      component: Home
+      name: 'Home',
+      component: Home,
+      meta: { title: DEFAULT_TITLE, description: DEFAULT_DESCRIPTION }
     },
     {
       path: '/about',
       name: 'About',
-      component: About
+      component: () => import('@/views/About.vue'),
+      meta: {
+        title: 'About Us | VR Space Nairobi',
+        description: 'VR Space is a virtual reality gaming venue at The Waterfront Karen, Nairobi, with HTC Vive, Meta Quest, racing simulators and consoles for all ages.'
+      }
     },
     {
       path: '/experiences',
       name: 'Experiences',
-      component: Experiences
+      component: () => import('@/views/Experiences.vue'),
+      meta: {
+        title: 'VR Experiences & Prices | VR Space Nairobi',
+        description: 'HTC Vive VR, Egg Rollercoaster VR, GT Racing Simulator, Meta Quest, PlayStation 5 and Nintendo Switch at VR Space, The Waterfront Karen. Sessions from KES 500, walk-ins welcome.'
+      }
     },
     {
       path: '/marketplace',
       name: 'Marketplace',
-      component: Marketplace
+      component: () => import('@/views/Marketplace.vue'),
+      meta: {
+        title: 'Buy Meta Quest VR Headsets in Kenya | VR Space Marketplace',
+        description: 'Order Meta Quest 3 and Meta Quest 3S VR headsets in Kenya from VR Space.'
+      }
     },
     {
       path: '/contact',
       name: 'Contact',
-      component: Contact
+      component: () => import('@/views/Contact.vue'),
+      meta: {
+        title: 'Contact & Directions | VR Space Nairobi',
+        description: 'Find VR Space at The Waterfront Karen (Basement), Nairobi. Call or WhatsApp +254 729 054 607. Open daily, walk-ins welcome.'
+      }
     },
 
     // ── Admin routes ──
@@ -175,6 +193,12 @@ const router = createRouter({
           meta: { requiresAdmin: true }
         },
         {
+          path: 'activity',
+          name: 'AdminActivityLog',
+          component: () => import('@/views/admin/ActivityLog.vue'),
+          meta: { requiresAdmin: true }
+        },
+        {
           path: 'settings',
           name: 'AdminSettings',
           component: () => import('@/views/admin/Settings.vue'),
@@ -224,10 +248,50 @@ const router = createRouter({
         },
       ]
     },
+
+    // ── Not found ──
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'NotFound',
+      component: () => import('@/views/NotFound.vue'),
+      meta: { title: 'Page not found | VR Space', noindex: true }
+    },
   ],
   scrollBehavior(to, from, savedPosition) {
+    if (savedPosition) return savedPosition
+    if (to.hash) return { el: to.hash, behavior: 'smooth' }
     return { top: 0 }
   }
+})
+
+// ── Per-page title, description and link-preview tags ──
+function setMeta(selector, attr, value) {
+  let el = document.head.querySelector(selector)
+  if (!el) {
+    el = document.createElement(selector.startsWith('link') ? 'link' : 'meta')
+    const [, key, name] = selector.match(/\[(\w+)="([^"]+)"\]/)
+    el.setAttribute(key, name)
+    document.head.appendChild(el)
+  }
+  el.setAttribute(attr, value)
+}
+
+router.afterEach((to) => {
+  if (to.meta.isAdmin || to.path.startsWith('/admin')) {
+    document.title = 'VRSpace Staff Portal'
+    return
+  }
+  const title = to.meta.title || DEFAULT_TITLE
+  const description = to.meta.description || DEFAULT_DESCRIPTION
+  const url = SITE_URL + (to.path === '/' ? '/' : to.path)
+
+  document.title = title
+  setMeta('meta[name="description"]', 'content', description)
+  setMeta('meta[property="og:title"]', 'content', title)
+  setMeta('meta[property="og:description"]', 'content', description)
+  setMeta('meta[property="og:url"]', 'content', url)
+  setMeta('link[rel="canonical"]', 'href', url)
+  setMeta('meta[name="robots"]', 'content', to.meta.noindex ? 'noindex' : 'index, follow')
 })
 
 // ── Navigation guards ──

@@ -3,6 +3,7 @@ import { ref, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { listMachines, toggleMachineActive } from '@/services/machineService'
 import { toast } from 'vue-sonner'
+import { formatPrice } from '@/utils/format'
 
 defineOptions({ name: 'MachineList' })
 
@@ -37,10 +38,6 @@ async function handleToggle(machine) {
   } catch (e) {
     toast.error('Failed to update machine')
   }
-}
-
-function formatPrice(price) {
-  return Number(price).toLocaleString('en-KE')
 }
 
 onMounted(loadMachines)
@@ -141,7 +138,7 @@ onMounted(loadMachines)
             <button
               @click="handleToggle(machine)"
               :class="[
-                'relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
+                'relative inline-flex h-5 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors tap-target',
                 machine.is_active ? 'bg-green-500' : 'bg-gray-300',
               ]"
             >
