@@ -165,7 +165,6 @@
 <script setup>
 import { ref, reactive } from 'vue';
 import emailjs from '@emailjs/browser';
-import quest2 from '@/assets/images/marketplace/quest2.webp';
 import quest3s from '@/assets/images/marketplace/quest3s.webp';
 import quest3 from '@/assets/images/marketplace/quest3.jpg';
 
@@ -198,20 +197,6 @@ const products = [
         storage: '512GB',
         price: 'KES 71,499',
         image: quest3
-    },
-    {
-        id: 5,
-        name: 'Meta Quest 2 VR Headset',
-        storage: '256GB',
-        price: 'KES 82,999',
-        image: quest2
-    },
-    {
-        id: 6,
-        name: 'Meta Quest 2 VR Headset',
-        storage: '128GB',
-        price: 'KES 54,499',
-        image: quest2
     }
 ];
 

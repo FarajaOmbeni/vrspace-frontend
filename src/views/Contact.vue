@@ -41,10 +41,29 @@
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                         d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                                 </svg>
-                                <p class="text-gray-900 text-lg font-bold">
-                                    The Waterfront Karen, Basement
-                                </p>
+                                <div>
+                                    <a :href="business.mapsUrl" target="_blank" rel="noopener noreferrer"
+                                        class="text-gray-900 text-lg font-bold underline-offset-2 hover:underline">
+                                        {{ business.address }}
+                                    </a>
+                                    <p class="text-gray-900 text-sm mt-1">Walk-ins welcome — no booking needed.</p>
+                                </div>
                             </div>
+                            <a :href="business.mapsUrl" target="_blank" rel="noopener noreferrer"
+                                class="mt-4 inline-block bg-blue text-white font-bold py-3 px-6 rounded-lg hover:opacity-90 transition-opacity">
+                                Get Directions
+                            </a>
+                        </div>
+
+                        <!-- Opening Hours -->
+                        <div class="mb-8">
+                            <h3
+                                class="bg-white text-blue text-xl font-bold py-3 px-6 rounded-lg shadow mb-4 text-center inline-block">
+                                OPENING HOURS
+                            </h3>
+                            <ul class="space-y-1 text-left text-gray-900 font-bold">
+                                <li v-for="h in business.hours" :key="h.days">{{ h.days }}: {{ h.time }}</li>
+                            </ul>
                         </div>
 
                         <!-- Contact Section -->
@@ -61,7 +80,7 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                                     </svg>
-                                    <p class="text-gray-900 text-lg font-bold">+254 729 054 607</p>
+                                    <a :href="business.phones[0].tel" class="text-gray-900 text-lg font-bold hover:underline">{{ business.phones[0].display }}</a>
                                 </div>
                                 <div class="flex items-start gap-3">
                                     <svg xmlns="http://www.w3.org/2000/svg"
@@ -70,7 +89,7 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                                     </svg>
-                                    <p class="text-gray-900 text-lg font-bold">+254 793 643 308</p>
+                                    <a :href="business.phones[1].tel" class="text-gray-900 text-lg font-bold hover:underline">{{ business.phones[1].display }}</a>
                                 </div>
                                 <div class="flex items-start gap-3">
                                     <svg xmlns="http://www.w3.org/2000/svg"
@@ -79,9 +98,13 @@
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                             d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
                                     </svg>
-                                    <p class="text-gray-900 text-lg font-bold">info@vrspace.co.ke</p>
+                                    <a :href="`mailto:${business.email}`" class="text-gray-900 text-lg font-bold hover:underline">{{ business.email }}</a>
                                 </div>
                             </div>
+                            <a :href="business.whatsapp.url" target="_blank" rel="noopener noreferrer"
+                                class="mt-4 inline-block bg-[#25D366] text-white font-bold py-3 px-6 rounded-lg hover:opacity-90 transition-opacity">
+                                Chat on WhatsApp
+                            </a>
                         </div>
 
                         <!-- Socials Section -->
@@ -91,7 +114,7 @@
                                 SOCIALS
                             </h3>
                             <div class="space-y-3 text-left">
-                                <a href="https://www.instagram.com/vrspacex?igsh=eWYyaXdrYnVkcnAy" target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 hover:opacity-70 transition-opacity">
+                                <a :href="business.socials.instagram.url" target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 hover:opacity-70 transition-opacity">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-900"
                                         fill="currentColor" viewBox="0 0 24 24">
                                         <path
@@ -99,7 +122,7 @@
                                     </svg>
                                     <p class="text-gray-900 text-lg font-bold">vrspacex</p>
                                 </a>
-                                <a href="https://www.tiktok.com/@vrspaceke?_r=1&_t=ZS-96qAgLXH8Z5" target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 hover:opacity-70 transition-opacity">
+                                <a :href="business.socials.tiktok.url" target="_blank" rel="noopener noreferrer" class="flex items-center gap-3 hover:opacity-70 transition-opacity">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-900"
                                         fill="currentColor" viewBox="0 0 24 24">
                                         <path
@@ -115,9 +138,20 @@
                 <!-- Contact Form Card -->
                 <div class="bg-gradient-to-br from-purple to-purple/80 rounded-2xl shadow-xl overflow-hidden">
                     <div class="p-8 md:p-10">
-                        <h2 class="text-3xl font-extrabold text-blue text-center mb-8 font-header">CONTACT US</h2>
+                        <h2 class="text-3xl font-extrabold text-blue text-center mb-2 font-header">SEND US A MESSAGE</h2>
+                        <p class="text-gray-900 text-center mb-8">Planning a party, school trip or corporate event? Tell us about it and we'll get back to you.</p>
 
-                        <form @submit.prevent="sendEmail" class="space-y-5">
+                        <!-- Sent: stays until they choose to send another -->
+                        <div v-if="sent" class="bg-white rounded-xl p-6 text-center shadow-md" role="status">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-green-600 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                            </svg>
+                            <p class="text-xl font-bold text-blue mb-2">Message sent!</p>
+                            <p class="text-gray-700 mb-4">Thanks — we'll get back to you soon. For a faster reply, WhatsApp us.</p>
+                            <button type="button" @click="sent = false" class="text-blue font-bold underline">Send another message</button>
+                        </div>
+
+                        <form v-else @submit.prevent="sendEmail" class="space-y-5">
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <label for="firstname" class="block text-gray-900 font-medium mb-1 text-sm">First
@@ -145,7 +179,7 @@
                             <div>
                                 <label for="phone" class="block text-gray-900 font-medium mb-1 text-sm">Phone
                                     Number</label>
-                                <input required id="phone" type="text" placeholder="Phone Number"
+                                <input required id="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="e.g. 0712 345 678"
                                     class="p-3 border-2 border-transparent focus:border-blue rounded-lg w-full transition-all duration-300 focus:outline-none shadow-md"
                                     v-model="form.phonenumber">
                             </div>
@@ -153,7 +187,7 @@
                             <div>
                                 <label for="message"
                                     class="block text-gray-900 font-medium mb-1 text-sm">Message</label>
-                                <textarea id="message" placeholder="Message"
+                                <textarea required id="message" placeholder="How can we help?"
                                     class="p-3 border-2 border-transparent focus:border-blue rounded-lg w-full h-32 resize-none overflow-y-auto transition-all duration-300 focus:outline-none shadow-md"
                                     v-model="form.message"></textarea>
                             </div>
@@ -173,24 +207,13 @@
 
     <!-- Notifications -->
     <transition name="fade">
-        <div v-if="showConfirmation"
-            class="fixed top-24 right-6 bg-green-600 text-white p-4 shadow-xl rounded-lg z-50 flex items-center">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24"
-                stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
-            Email Sent Successfully!
-        </div>
-    </transition>
-
-    <transition name="fade">
         <div v-if="showError"
             class="fixed top-24 right-6 bg-red-600 text-white p-4 shadow-xl rounded-lg z-50 flex items-center">
             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2" fill="none" viewBox="0 0 24 24"
                 stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
-            Failed to send email. Please try again.
+            Couldn't send your message. Please try again or WhatsApp us.
         </div>
     </transition>
 </template>
@@ -198,13 +221,14 @@
 <script setup>
 import emailjs from '@emailjs/browser';
 import { ref, reactive } from 'vue';
+import { business } from '@/config/business';
 
 // Component name definition
 defineOptions({
     name: 'ContactPage'
 });
 
-const showConfirmation = ref(false);
+const sent = ref(false);
 const showError = ref(false);
 const isLoading = ref(false);
 
@@ -233,18 +257,14 @@ const sendEmail = async () => {
             import.meta.env.VITE_EMAILJS_PUBLIC_KEY,
         );
 
-        console.log('Email sent successfully');
         Object.assign(form, { firstname: '', lastname: '', email: '', phonenumber: '', message: '' });
-        showConfirmation.value = true;
-        setTimeout(() => {
-            showConfirmation.value = false;
-        }, 3000);
+        sent.value = true;
     } catch (error) {
         console.error('Failed to send email:', error);
         showError.value = true;
         setTimeout(() => {
             showError.value = false;
-        }, 3000);
+        }, 6000);
     } finally {
         isLoading.value = false;
     }
@@ -253,7 +273,7 @@ const sendEmail = async () => {
 
 <style scoped>
 .hero {
-    background-image: url('@/assets/images/contact_us/contact_us.png');
+    background-image: url('@/assets/images/contact_us/contact_us.webp');
     background-position: center;
     background-size: cover;
 }

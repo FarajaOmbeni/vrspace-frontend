@@ -7,7 +7,7 @@
           <div class="transform transition-transform duration-300 hover:scale-105 p-2">
             <img 
               :src="image_link" 
-              alt="VR Experience" 
+              :alt="title" 
               class="w-full h-auto max-w-xl mx-auto rounded-lg shadow-xl"
               loading="lazy"
             >
@@ -25,7 +25,7 @@
           <div class="lg:hidden mb-6 sm:mb-8">
             <img 
               :src="image_link" 
-              alt="VR Experience" 
+              :alt="title" 
               class="w-full h-auto max-w-md mx-auto rounded-lg shadow-xl"
               loading="lazy"
             >
@@ -41,8 +41,18 @@
           
           <!-- Button -->
           <div class="flex justify-center lg:justify-start">
-            <RouterLink 
-              :to="link" 
+            <a
+              v-if="isExternal"
+              :href="link"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="inline-block bg-purple text-white font-bold py-3 sm:py-4 px-6 sm:px-8 rounded-lg shadow-md transition-all duration-300 hover:shadow-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-purple focus:ring-opacity-50"
+            >
+              {{ button }}
+            </a>
+            <RouterLink
+              v-else
+              :to="link"
               class="inline-block bg-purple text-white font-bold py-3 sm:py-4 px-6 sm:px-8 rounded-lg shadow-md transition-all duration-300 hover:shadow-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-purple focus:ring-opacity-50"
             >
               {{ button }}
@@ -55,6 +65,7 @@
 </template>
 
 <script setup>
+import { computed } from 'vue';
 // Component name definition
 defineOptions({
   name: 'HomeEvenSection'
@@ -62,7 +73,7 @@ defineOptions({
 
 import { RouterLink } from 'vue-router';
 
-defineProps({
+const props = defineProps({
   title: String,
   description: String,
   link: String,
@@ -72,6 +83,8 @@ defineProps({
   explore: String,
   experience: String,
 });
+
+const isExternal = computed(() => /^https?:/.test(props.link || ''));
 </script>
 
 <style scoped>

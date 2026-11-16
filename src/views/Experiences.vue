@@ -194,21 +194,21 @@ defineOptions({
 });
 
 // Images
-import htc from '@/assets/images/experiences/htc.jpg';
-import eggvr from '@/assets/images/experiences/eggvr.jpg';
-import gtr from '@/assets/images/experiences/gt.jpg';
-import racing_kart from '@/assets/images/experiences/cartvr.jpg';
-import magic_ufo from '@/assets/images/experiences/ufo.jpg';
-import aircraft from '@/assets/images/experiences/aircraft.jpg';
-import ps5 from '@/assets/images/experiences/ps5.jpg';
-import nintendo from '@/assets/images/experiences/nintendo.png';
-import meta from '@/assets/images/experiences/meta.jpg';
+import htc from '@/assets/images/experiences/htc.webp';
+import eggvr from '@/assets/images/experiences/eggvr.webp';
+import gtr from '@/assets/images/experiences/gt.webp';
+import racing_kart from '@/assets/images/experiences/cartvr.webp';
+import magic_ufo from '@/assets/images/experiences/ufo.webp';
+import aircraft from '@/assets/images/experiences/aircraft.webp';
+import ps5 from '@/assets/images/experiences/ps5.webp';
+import nintendo from '@/assets/images/experiences/nintendo.webp';
+import meta from '@/assets/images/experiences/meta.webp';
 import icon from '@/assets/images/experiences/user.png';
 </script>
 
 <style scoped>
 .hero {
-  background-image: url('@/assets/images/experiences/experiences.png');
+  background-image: url('@/assets/images/experiences/experiences.webp');
   background-position: center;
   background-size: cover;
 }

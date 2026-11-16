@@ -27,10 +27,10 @@
           <NavLink to="/experiences" :class="{ 'active': route.path === '/experiences' }">VR Experiences</NavLink>
           <NavLink to="/marketplace" :class="{ 'active': route.path === '/marketplace' }">Marketplace</NavLink>
           <NavLink to="/contact" :class="{ 'active': route.path === '/contact' }">Contact</NavLink>
-          <RouterLink to="/contact"
+          <a :href="business.mapsUrl" target="_blank" rel="noopener noreferrer"
             class="ml-2 bg-pink text-white py-2 px-4 rounded-full font-bold transition-all duration-300 hover:opacity-90 hover:shadow-md">
-            Book Now
-          </RouterLink>
+            Get Directions
+          </a>
         </div>
       </div>
     </div>
@@ -46,10 +46,10 @@
         <NavLink to="/marketplace" :class="{ 'active': route.path === '/marketplace' }" @click="closeMenu">Marketplace
         </NavLink>
         <NavLink to="/contact" :class="{ 'active': route.path === '/contact' }" @click="closeMenu">Contact</NavLink>
-        <RouterLink to="/contact" @click="closeMenu"
+        <a :href="business.mapsUrl" target="_blank" rel="noopener noreferrer" @click="closeMenu"
           class="text-center bg-pink text-white py-2 px-4 rounded-full font-bold transition-all duration-300 hover:opacity-90 hover:shadow-md">
-          Book Now
-        </RouterLink>
+          Get Directions
+        </a>
       </div>
     </div>
   </nav>
@@ -58,6 +58,7 @@
 <script setup>
 import { RouterLink } from 'vue-router';
 import NavLink from '@/components/NavLink.vue';
+import { business } from '@/config/business';
 import { useRoute } from 'vue-router';
 import { ref, onMounted, onUnmounted } from 'vue';
 

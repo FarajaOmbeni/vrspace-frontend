@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /forgot-password
+Disallow: /reset-password
+
+Sitemap: https://vrspace.co.ke/sitemap.xml
