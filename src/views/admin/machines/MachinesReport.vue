@@ -7,6 +7,8 @@ import { getMachineRevenue } from '@/services/sessionService'
 import { formatPrice } from '@/utils/format'
 import { periodRange } from '@/utils/date'
 import { toast } from 'vue-sonner'
+import { downloadCsv } from '@/utils/csv'
+import ExportCsvButton from '@/components/admin/ExportCsvButton.vue'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip)
 
@@ -80,6 +82,21 @@ async function loadData() {
   }
 }
 
+function exportCsv() {
+  const { startDate, endDate } = getDateRange()
+  const totalSessions = machines.value.reduce((a, m) => a + m.sessions, 0)
+  const totalRevenue = machines.value.reduce((a, m) => a + m.revenue, 0)
+  const share = (revenue) => (totalRevenue ? Number(((revenue / totalRevenue) * 100).toFixed(1)) : 0)
+
+  const rows = [...machines.value, { name: 'Total', sessions: totalSessions, revenue: totalRevenue }]
+  downloadCsv(`machines-${startDate || 'start'}-to-${endDate || 'today'}.csv`, rows, [
+    { label: 'Machine', value: (m) => m.name },
+    { label: 'Sessions', value: (m) => m.sessions },
+    { label: 'Revenue (KES)', value: (m) => m.revenue },
+    { label: 'Share of revenue (%)', value: (m) => share(m.revenue) },
+  ])
+}
+
 function applyFilters() {
   loadData()
 }
@@ -89,7 +106,10 @@ onMounted(loadData)
 
 <template>
   <div>
-    <h1 class="text-2xl font-header font-bold text-gray-900 mb-6">Machines Report</h1>
+    <div class="flex items-center justify-between gap-3 mb-6">
+      <h1 class="text-2xl font-header font-bold text-gray-900">Machines Report</h1>
+      <ExportCsvButton :disabled="loading || !machines.length" @click="exportCsv" />
+    </div>
 
     <!-- Filters -->
     <div class="bg-white rounded-xl shadow-soft p-4 mb-4 space-y-3 md:space-y-0 md:flex md:items-end md:gap-4">
